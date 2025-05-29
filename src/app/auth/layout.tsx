@@ -18,7 +18,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </Link>
       </div>
       <div className="flex justify-center mb-10 mt-20">
-        <Image src="/FooterLogo.png" alt="Logo" width={100} height={100} />
+        <Image src="/FooterLogo.png" alt="Logo" width={150} height={100} />
       </div>
       <div className="text-white">{children}</div>
     </div>
