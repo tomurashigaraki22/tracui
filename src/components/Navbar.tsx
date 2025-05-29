@@ -39,18 +39,18 @@ const Navbar = () => {
           <div className="flex flex-col lg:flex-row gap-3 px-[5%] w-full lg:w-fit lg:px-0 mt-20 lg:mt-0">
             <Link
               onClick={() => setNavOpen(false)}
-              href="/auth/signup"
+              href="/auth/login"
               className="text-nowrap text-lg lg:text-base py-3 lg:py-1 px-5 bg-[#00FFD1] rounded font-semibold border"
             >
-              Sign Up
+              Login
             </Link>
-            <Link
+            {/* <Link
               onClick={() => setNavOpen(false)}
               href="/auth/login"
               className="text-nowrap text-lg lg:text-base py-3 lg:py-1 px-5 bg-[#343434] rounded text-white font-semibold"
             >
               Log In
-            </Link>
+            </Link> */}
           </div>
         </div>
         <div className="flex lg:hidden items-center">

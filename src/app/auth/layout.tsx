@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import React from "react";
 import type { ReactNode } from "react";
 import { BiArrowBack } from "react-icons/bi";
@@ -15,6 +16,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <FaAngleLeft size={20} />
           Home Page
         </Link>
+      </div>
+      <div className="flex justify-center mb-10 mt-20">
+        <Image src="/FooterLogo.png" alt="Logo" width={100} height={100} />
       </div>
       <div className="text-white">{children}</div>
     </div>
