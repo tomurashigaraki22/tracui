@@ -18,35 +18,40 @@ const Footer: React.FC = () => {
       heading: "Navigation",
       routes: [
         { name: "Home", link: "/" },
-        { name: "Scan", link: "/scan" },
-        { name: "Mint", link: "/mint" },
+        { name: "Features", link: "/scan" },
+        { name: "Contact", link: "/mint" },
+        { name: "FAQs", link: "/mint" },
       ],
     },
     {
       heading: "About",
       routes: [
-        { name: "Our Mission", link: "/about" },
-        { name: "Team", link: "/team" },
+        { name: "What is Tracui", link: "/about" },
+        { name: "How It Works", link: "/team" },
+        { name: "Why Choose Us", link: "/team" },
       ],
     },
     {
-      heading: "Support",
+      heading: "Connect",
       routes: [
-        { name: "FAQs", link: "/faq" },
-        { name: "Contact", link: "/contact" },
+        { name: "Instagram", link: "/faq" },
+        { name: "X (formarly Twitter) ", link: "/contact" },
+        { name: "LinkedIn", link: "/contact" },
+        { name: "E-mail Support", link: "/contact" },
       ],
     },
     {
       heading: "Legal",
       routes: [
         { name: "Privacy Policy", link: "/privacy" },
-        { name: "Terms of Service", link: "/terms" },
+        { name: "Terms of Use", link: "/terms" },
+        { name: "Cookie Policy", link: "/terms" },
       ],
     },
   ];
 
   return (
-    <footer className="bg-black py-20 lg:py-32 px-[5%] lg:px-[10%] text-white">
+    <footer className="bg-black py-20 px-[5%] lg:px-[10%] text-white">
       <div className="2xl:container mx-auto">
         <div className="flex flex-col lg:flex-row justify-between gap-8">
           <div>
@@ -74,6 +79,11 @@ const Footer: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+        <div className="mt-10 text-white">
+          <p className="text-sm text-center font-semibold">
+            © 2025 Tracui. Built with Sui by Team VESTH.
+          </p>
         </div>
       </div>
     </footer>

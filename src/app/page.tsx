@@ -99,7 +99,7 @@ export default function Home() {
         }}
       >
         <div className="text-center">
-          <h1 className="font-bold text-6xl lg:text-8xl text-[#00FFD1]">
+          <h1 className="font-bold text-5xl lg:text-8xl text-[#00FFD1]">
             Track, Verify Trust
           </h1>
           <p className="font-semibold text-base lg:text-lg mt-8">
@@ -115,7 +115,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <p className="text-lg font-semibold mt-5">
+          <p className="text-lg font-semibold mt-6">
             Track, Pay, Verify. All in One Tap.
           </p>
         </div>
@@ -128,13 +128,13 @@ export default function Home() {
             <h1 className="text-5xl lg:text-7xl font-bold">
               How <span className="text-[#00FFD1]">Tracui</span> Works
             </h1>
-            <p className="lg:text-lg font-semibold w-2/3 lg:w-1/2 mx-auto mt-7">
+            <p className="lg:text-lg font-semibold lg:w-1/2 mx-auto mt-7">
               Transparency, traceability, and trust. All in one seamless
               process.
             </p>
           </div>
 
-          <div className=" grid grid-cols-1 lg:grid-cols-2 mt-20 gap-5 px-[10%]">
+          <div className=" grid grid-cols-1 lg:grid-cols-2 mt-10 lg:mt-20 gap-5 px-[10%]">
             {HowItWorksItems.map((item, index) => (
               <HowItWorks
                 key={index}
@@ -252,7 +252,7 @@ export default function Home() {
       <section className="px-[5%] lg:px-[10%] py-20 lg:py-32">
         <div className="2xl:container mx-auto">
           <div className="text-white text-center">
-            <h1 className="text-5xl lg:text-7xl font-bold">
+            <h1 className="text-4xl lg:text-7xl font-bold">
               Built on{" "}
               <span className="text-[#00FFD1]">
                 Integrity, <br />
@@ -264,9 +264,9 @@ export default function Home() {
               Tracui is designed for absolute confidence at every step.
             </p>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 px-[10%] lg:px-[20%] mt-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 px-[10%] lg:px-[20%] mt-10 lg:mt-20">
             {ReasonsItems.map((item, index) => (
-              <div className="p-10 rounded-lg bg-[#343434] border border-white">
+              <div className="p-8 lg:p-10 rounded-lg bg-[#343434] border border-white">
                 <h2 className="text-2xl text-white font-bold">
                   {item.heading}
                 </h2>
@@ -279,7 +279,7 @@ export default function Home() {
 
       <section className=" bg-[#343434] px-[5%] lg:px-[10%] py-20 lg:py-32">
         <div>
-          <h1 className="text-6xl lg:text-8xl text-white font-bold text-center">
+          <h1 className="text-5xl lg:text-8xl text-white font-bold text-center">
             Start Using <br />
             <span className="text-[#00FFD1]">Tracui Today!</span>
           </h1>

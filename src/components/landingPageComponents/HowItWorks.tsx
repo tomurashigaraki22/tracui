@@ -26,7 +26,7 @@ const HowItWorks: React.FC<HowItWorksProps> = ({
         }}
       />
       <div className="h-20" />
-      <div className="absolute bottom-0 p-4 z-10 bg-[#343434] w-full h-[45%] lg:h-2/5 px-6 lg:px-10 py-2">
+      <div className="absolute bottom-0 p-4 z-10 bg-[#343434] w-full min-h-[45%] h-fit lg:h-2/5 px-6 lg:px-10 py-2">
         <h3 className="text-lg lg:text-xl font-bold mt-2">{heading}</h3>
         <p className="text-xs lg:text-sm mt-1">{description}</p>
       </div>

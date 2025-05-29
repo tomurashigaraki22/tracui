@@ -13,7 +13,7 @@ const Navbar = () => {
     { name: "Track Products", link: "#trackproducts" },
   ];
   return (
-    <nav className="px-[5%] lg:px-[10%] bg-black">
+    <nav className="px-[5%] lg:px-[10%] bg-black z-10">
       <div className="2xl:container mx-auto flex justify-between items-center py-5">
         <div>
           <Image src="/Logo.png" width={150} height={150} alt="Logo"></Image>
@@ -21,7 +21,7 @@ const Navbar = () => {
         <div
           className={`${
             isNavOpen ? "top-16" : "-top-[100%]"
-          } flex flex-col absolute lg:flex-row justify-between items-center gap-5 bg-black w-full lg:w-fit  lg:top-0 border left-0  lg:relative pb-20 lg:pb-0 transition-all duration-300`}
+          } flex flex-col absolute lg:flex-row justify-between items-center gap-5 bg-black w-full lg:w-fit  lg:top-0 border left-0  lg:relative pb-20 lg:pb-0 transition-all duration-300 z-10`}
         >
           <div className="flex flex-col lg:flex-row text-white items-center gap-4 w-full">
             {routes.map((link, index) => (
@@ -38,14 +38,16 @@ const Navbar = () => {
           </div>
           <div className="flex flex-col lg:flex-row gap-3 px-[5%] w-full lg:w-fit lg:px-0 mt-20 lg:mt-0">
             <Link
-              href="/signup"
-              className="text-nowrap text-lg lg:text-base py-1 px-5 bg-[#00FFD1] rounded font-semibold border"
+              onClick={() => setNavOpen(false)}
+              href="/auth/signup"
+              className="text-nowrap text-lg lg:text-base py-3 lg:py-1 px-5 bg-[#00FFD1] rounded font-semibold border"
             >
               Sign Up
             </Link>
             <Link
-              href="/signup"
-              className="text-nowrap text-lg lg:text-base py-1 px-5 bg-[#343434] rounded text-white font-semibold"
+              onClick={() => setNavOpen(false)}
+              href="/auth/login"
+              className="text-nowrap text-lg lg:text-base py-3 lg:py-1 px-5 bg-[#343434] rounded text-white font-semibold"
             >
               Log In
             </Link>
