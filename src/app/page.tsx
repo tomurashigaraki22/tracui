@@ -1,3 +1,4 @@
+"use client"
 import Image from "next/image";
 import Link from "next/link";
 
@@ -17,7 +18,7 @@ export default function Home() {
         <div className="text-center">
           <h1 className="font-bold text-8xl">Track, Verify Trust</h1>
           <p className="font-semibold text-lg mt-8">
-            Tracui lets you track any product’s journey with just a tap or scan
+            Tracui lets you track any product&apos;s journey with just a tap or scan
             — from origin to delivery.
           </p>
           <div className="mt-8 ">
