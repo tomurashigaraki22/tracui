@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  serverExternalPackages: ['@mysten/walrus', '@mysten/walrus-wasm'],
 };
 
 export default nextConfig;

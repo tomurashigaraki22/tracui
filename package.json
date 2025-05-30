@@ -12,6 +12,7 @@
     "@hookform/resolvers": "^5.0.1",
     "@mysten/sui": "^1.30.1",
     "@mysten/sui.js": "^0.54.1",
+    "@mysten/walrus": "^0.1.1",
     "@react-oauth/google": "^0.12.2",
     "@studio-freight/lenis": "^1.0.42",
     "@types/jsonwebtoken": "^9.0.9",
@@ -20,8 +21,8 @@
     "chart.js": "^4.4.9",
     "crypto-js": "^4.2.0",
     "framer-motion": "^12.15.0",
-    "jwt-decode": "^3.1.2",
     "jsonwebtoken": "^9.0.2",
+    "jwt-decode": "^3.1.2",
     "mysql2": "^3.14.1",
     "next": "15.3.2",
     "react": "^19.0.0",
@@ -29,6 +30,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.4",
     "react-icons": "^5.5.0",
+    "undici": "^7.10.0",
     "zod": "^3.25.42"
   },
   "devDependencies": {

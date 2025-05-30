@@ -46,7 +46,7 @@ const ConsumerOverviewPage = () => {
         setLoading(true);
         const token = localStorage.getItem("user_token"); // Get token from localStorage
         const response = await fetch(
-          "https://tracui.pxxl.tech/api/dashboard/stats",
+          "api/dashboard/stats",
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -34,7 +34,7 @@ export default function RoleSelection() {
       console.log("Initial wallet balance:", balance);
 
       // Make API request with wallet address
-      const response = await fetch("https://tracui.pxxl.tech/api/auth/signup", {
+      const response = await fetch("api/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -58,9 +58,9 @@ export default function RoleSelection() {
       localStorage.setItem("access_token", data.token);
       //   localStorage.setItem("email", data.email);
       //   localStorage.setItem("name", data.name);
-      //   localStorage.setItem("wallet_address", walletInfo.address);
-      //   localStorage.setItem("wallet_private_key", walletInfo.privateKey); // Be careful with this!
-      //   localStorage.setItem("wallet_public_key", walletInfo.publicKey);
+        localStorage.setItem("wallet_address", walletInfo.address);
+        localStorage.setItem("wallet_private_key", walletInfo.privateKey); // Be careful with this!
+        localStorage.setItem("wallet_public_key", walletInfo.publicKey);
       localStorage.setItem("userRole", role);
 
       // Navigate to dashboard

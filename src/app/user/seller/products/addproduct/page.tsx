@@ -4,10 +4,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { BiPlus, BiX } from "react-icons/bi";
+import { saveProductBlob } from "../utils/walrustools"; // Import the utility function
 
 // Define validation schema
 const productSchema = z.object({
-  productName: z.string().min(1, "Product name is required"),
   ownerEmail: z.string().email("Invalid email address"),
   thresholds: z.object({
     pressure: z.number().min(0, "Pressure must be positive"),
@@ -37,9 +37,13 @@ const AddProductPage = () => {
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      console.log("Submitting product:", data);
+      // Save product data as a blob using Walrus
+      const blobId = await saveProductBlob(data);
+
+      // Simulate API call with blob ID
+      console.log("Submitting product with blob ID:", blobId);
       await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setSubmitSuccess(true);
       reset();
     } catch (error) {
