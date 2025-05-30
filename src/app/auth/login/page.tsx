@@ -28,7 +28,7 @@ export default function LoginPage() {
         setLoading(true);
         // Get user info from Google
         const userInfo = await axios.get<CodeResponse>(
-          'https://www.googleapis.com/oauth2/v3/userinfo',
+          "https://www.googleapis.com/oauth2/v3/userinfo",
           {
             headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
           }
@@ -43,10 +43,10 @@ export default function LoginPage() {
         };
 
         // Store user data in localStorage
-        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem("userData", JSON.stringify(userData));
 
         // Navigate to role selection
-        router.push('/roleselection');
+        router.push("/roleselection");
       } catch (err) {
         console.error("Login Failed:", err);
         setError("Failed to login. Please try again.");
@@ -58,22 +58,25 @@ export default function LoginPage() {
       console.log("Login Failed:", error);
       setError("Google login failed. Please try again.");
       setLoading(false);
-    }
+    },
   });
 
-    if (loading) {
-      return (
-        <div className="py-8 flex-1">
-          <LoadingSpinner />
-        </div>
-      );
-    }
-
+  if (loading) {
     return (
-      <>
+      <div className="py-8 flex-1">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="lg:max-w-[60%] mx-auto">
         <div className="text-center">
           <h3 className="text-base font-bold text-white">Welcome Back!</h3>
-          <p className="text-xs text-gray-400">Let&apos;s pick up where you left off.</p>
+          <p className="text-xs text-gray-400">
+            Let&apos;s pick up where you left off.
+          </p>
         </div>
 
         {error && (
@@ -85,13 +88,12 @@ export default function LoginPage() {
         <button
           onClick={() => login()}
           disabled={loading}
-          className="w-full bg-white rounded-lg flex items-center justify-center gap-2 text-black font-semibold py-2 mt-5 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full cursor-pointer bg-white rounded-lg flex items-center justify-center gap-2 text-black font-semibold py-2 mt-5 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FcGoogle size={20} />
           <p className="text-sm">Sign In with Google</p>
         </button>
-      </>
-    );
-  };
-
-
+      </div>
+    </>
+  );
+}

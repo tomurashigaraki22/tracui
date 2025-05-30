@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BiBarChart,
@@ -25,14 +25,25 @@ interface SidebarProps {
 interface NavItem {
   label: string;
   path: string;
-  icon: IconType; // Changed to only accept IconType
+  icon: IconType;
   children?: { label: string; path: string }[];
 }
-console.log("I am king");
 
 const Sidebar = ({ role }: SidebarProps) => {
   const pathname = usePathname();
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+
+  // Automatically expand parent if child is active
+  useEffect(() => {
+    const navItems = getNavItems(role);
+    const activeParent = navItems.find((item) =>
+      item.children?.some((child) => pathname.startsWith(child.path))
+    );
+
+    if (activeParent && !expandedGroups.includes(activeParent.label)) {
+      setExpandedGroups((prev) => [...prev, activeParent.label]);
+    }
+  }, [pathname, role]);
 
   const toggleGroup = (label: string) => {
     setExpandedGroups((prev) =>
@@ -49,7 +60,7 @@ const Sidebar = ({ role }: SidebarProps) => {
         return [
           {
             label: "Overview",
-            path: "/user/seller/dashboard",
+            path: "/user/seller/overview",
             icon: BiBarChart,
           },
           {
@@ -57,14 +68,15 @@ const Sidebar = ({ role }: SidebarProps) => {
             path: "/user/seller/products",
             icon: BiPackage,
             children: [
-              { label: "Active Products", path: "/seller/products/active" },
-              { label: "Add Products", path: "/seller/products/archived" },
+              {
+                label: "Active Products",
+                path: "/user/seller/products/activeproducts",
+              },
+              {
+                label: "Add Products",
+                path: "/user/seller/products/addproduct",
+              },
             ],
-          },
-          {
-            label: "Shipments",
-            path: "/user/seller/shipments",
-            icon: BsTruck,
           },
         ];
 
@@ -72,7 +84,7 @@ const Sidebar = ({ role }: SidebarProps) => {
         return [
           {
             label: "Overview",
-            path: "/user/logistics/dashboard",
+            path: "/user/logistics/overview",
             icon: BiBarChart,
           },
           {
@@ -80,11 +92,11 @@ const Sidebar = ({ role }: SidebarProps) => {
             path: "/user/logistics/active-shipments",
             icon: BsTruck,
           },
-          {
-            label: "Verify & Handoff",
-            path: "/user/logistics/verify",
-            icon: BiPackage,
-          },
+          //   {
+          //     label: "Verify & Handoff",
+          //     path: "/user/logistics/verify",
+          //     icon: BiPackage,
+          //   },
           {
             label: "History",
             path: "/user/logistics/history",
@@ -96,17 +108,17 @@ const Sidebar = ({ role }: SidebarProps) => {
         return [
           {
             label: "Overview",
-            path: "/user/consumer/dashboard",
+            path: "/user/consumer/overview",
             icon: BiBarChart,
           },
           {
-            label: "My Products",
-            path: "/user/consumer/products",
+            label: "My Orders",
+            path: "/user/consumer/myorders",
             icon: BiShoppingBag,
           },
           {
             label: "Order History",
-            path: "/user/consumer/history",
+            path: "/user/consumer/order-history",
             icon: CgLock,
           },
         ];
@@ -122,6 +134,10 @@ const Sidebar = ({ role }: SidebarProps) => {
     return pathname === path || pathname.startsWith(`${path}/`);
   };
 
+  const hasActiveChild = (item: NavItem) => {
+    return item.children?.some((child) => isActive(child.path));
+  };
+
   return (
     <aside className="bg-black h-screen w-64 border-r border-neutral-200 flex flex-col">
       {/* Logo */}
@@ -134,6 +150,8 @@ const Sidebar = ({ role }: SidebarProps) => {
         <ul className="space-y-5">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const isParentActive = hasActiveChild(item);
+
             return (
               <li key={item.label}>
                 {!item.children ? (
@@ -155,7 +173,7 @@ const Sidebar = ({ role }: SidebarProps) => {
                     <button
                       onClick={() => toggleGroup(item.label)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
-                        isActive(item.path)
+                        isActive(item.path) || isParentActive
                           ? "bg-white text-black"
                           : "text-white hover:bg-gray-400 hover:text-black"
                       }`}
@@ -166,7 +184,7 @@ const Sidebar = ({ role }: SidebarProps) => {
                         </span>
                         <span>{item.label}</span>
                       </div>
-                      {expandedGroups.includes(item.label) ? (
+                      {expandedGroups.includes(item.label) || isParentActive ? (
                         <BiChevronDown size={16} />
                       ) : (
                         <BiChevronRight size={16} />
@@ -175,21 +193,22 @@ const Sidebar = ({ role }: SidebarProps) => {
 
                     {/* Submenu */}
                     <AnimatePresence>
-                      {expandedGroups.includes(item.label) && (
+                      {(expandedGroups.includes(item.label) ||
+                        isParentActive) && (
                         <motion.ul
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.2 }}
-                          className="overflow-hidden pl-8"
+                          className="overflow-hidden pl-8 flex flex-col"
                         >
-                          {item.children.map((subItem) => (
+                          {item.children.map((subItem, index) => (
                             <li key={subItem.label}>
                               <Link
                                 href={subItem.path}
-                                className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                                className={`mt-2 flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
                                   isActive(subItem.path)
-                                    ? "bg-primary-50 text-primary-600"
+                                    ? "bg-white text-black"
                                     : "text-white hover:bg-gray-400 hover:text-black"
                                 }`}
                               >
