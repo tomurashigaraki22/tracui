@@ -69,12 +69,7 @@ const page: React.FC = () => {
             <span className="text-sm font-medium">Sign in with Google</span>
           </Link>
 
-          <p className="text-center text-sm text-gray-400">
-            Don't have an account?{" "}
-            <Link href="/auth/signup" className="text-[#00FFD1] hover:text-[#00FFD1]/80 transition-colors">
-              Sign up
-            </Link>
-          </p>
+         
         </div>
       </div>
     </div>
