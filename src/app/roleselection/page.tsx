@@ -12,7 +12,8 @@ const RoleSelection = () => {
   const navigate = useRouter();
 
   const handleRoleSelect = (role: "seller" | "logistics" | "consumer") => {
-    // setRole(role);
+    // Store role in localStorage or context
+    localStorage.setItem("userRole", role);
     navigate.push(`/user/${role}/dashboard`);
   };
 
