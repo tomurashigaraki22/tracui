@@ -61,10 +61,9 @@ export default function LoginPage() {
     }
   });
 
-  const renderContent = () => {
     if (loading) {
       return (
-        <div className="py-8">
+        <div className="py-8 flex-1">
           <LoadingSpinner />
         </div>
       );
@@ -95,12 +94,4 @@ export default function LoginPage() {
     );
   };
 
-  return (
-    <div className="px-[5%] lg:px-[10%] max-w-2xl mx-auto">
-      <div className="border border-white rounded-lg bg-black shadow-2xl py-8 px-5">
-        {renderContent()}
-      </div>
-    </div>
-  );
-}
 
