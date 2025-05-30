@@ -28,6 +28,7 @@ interface NavItem {
   icon: IconType; // Changed to only accept IconType
   children?: { label: string; path: string }[];
 }
+console.log("I am king");
 
 const Sidebar = ({ role }: SidebarProps) => {
   const pathname = usePathname();
