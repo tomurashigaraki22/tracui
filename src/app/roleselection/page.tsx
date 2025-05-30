@@ -17,7 +17,7 @@ export default function RoleSelection() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useRouter();
 
-  const loginNow = async (role: "SUPPLIER" | "RETAILER" | "CONSUMER") => {
+  const loginNow = async (role: "seller" | "logistics" | "consumer") => {
     try {
       setLoading(true);
       setError(null);
@@ -61,9 +61,11 @@ export default function RoleSelection() {
       localStorage.setItem('wallet_address', walletInfo.address);
       localStorage.setItem('wallet_private_key', walletInfo.privateKey); // Be careful with this!
       localStorage.setItem('wallet_public_key', walletInfo.publicKey);
+      localStorage.setItem('userRole', role);
+
 
       // Navigate to dashboard
-      navigate.push('/dashboard');
+      navigate.push(`/user/${role}/dashboard`);
     } catch (err) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Failed to complete login');
@@ -80,7 +82,7 @@ export default function RoleSelection() {
 
   const roles = [
     {
-      id: "SUPPLIER",
+      id: "seller",
       title: "Seller",
       description: "Manage products, set thresholds, view shipping status",
       icon: <BiPackage size={24} className="text-primary-500" />,
@@ -88,7 +90,7 @@ export default function RoleSelection() {
       buttonClass: "bg-primary-500 hover:bg-primary-600",
     },
     {
-      id: "RETAILER",
+      id: "logistics",
       title: "Logistics",
       description: "Verify packages, manage shipments, track product data",
       icon: <BsTruck size={24} className="text-secondary-500" />,
@@ -96,7 +98,7 @@ export default function RoleSelection() {
       buttonClass: "bg-secondary-500 hover:bg-secondary-600",
     },
     {
-      id: "CONSUMER",
+      id: "consumer",
       title: "Consumer",
       description:
         "Track incoming shipments, view product history, sign for deliveries",
@@ -151,7 +153,7 @@ export default function RoleSelection() {
             <motion.div
               key={role.id}
               onClick={() =>
-                loginNow(role.id as "SUPPLIER" | "RETAILER" | "CONSUMER")
+                loginNow(role.id as "seller" | "logistics" | "consumer")
               }
               variants={itemVariants}
               className={`card card-hover cursor-pointer p-6 ${role.color}`}
