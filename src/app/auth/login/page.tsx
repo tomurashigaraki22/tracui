@@ -1,60 +1,106 @@
+"use client";
+
 import Link from "next/link";
-import React from "react";
-import { BsGoogle } from "react-icons/bs";
-import { CgGoogle } from "react-icons/cg";
+import React, { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
 import { FcGoogle } from "react-icons/fc";
-import { GrGoogle } from "react-icons/gr";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
-const page: React.FC = () => {
-  return (
-    <div className="px-[5%] lg:px-[10%] max-w-2xl mx-auto">
-      <div className="border borfer-white rounded-lg bg-black shadow-2xl py-8 px-5">
-        <div className="text-center">
-          <h3 className="text-base font-bold">Welcome Back!</h3>
-          <p className="text-xs">Let&apos;s pick up where you left off.</p>
+interface CodeResponse {
+  access_token: string;
+  email: string;
+  name: string;
+  picture?: string;
+  given_name?: string;
+  family_name?: string;
+}
+
+export default function LoginPage() {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const login = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setLoading(true);
+        // Get user info from Google
+        const userInfo = await axios.get<CodeResponse>(
+          'https://www.googleapis.com/oauth2/v3/userinfo',
+          {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+          }
+        );
+
+        // Store the response in localStorage or state management
+        const userData = {
+          access_token: tokenResponse.access_token,
+          email: userInfo.data.email,
+          name: userInfo.data.name,
+          picture: userInfo.data.picture,
+        };
+
+        // Store user data in localStorage
+        localStorage.setItem('userData', JSON.stringify(userData));
+
+        // Navigate to role selection
+        router.push('/roleselection');
+      } catch (err) {
+        console.error("Login Failed:", err);
+        setError("Failed to login. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: (error) => {
+      console.log("Login Failed:", error);
+      setError("Google login failed. Please try again.");
+      setLoading(false);
+    }
+  });
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="py-8">
+          <LoadingSpinner />
         </div>
-        {/* <div>
-          <div className="flex flex-col gap-2 mt-5">
-            <label htmlFor="Email" className="text-sm">
-              Email
-            </label>
+      );
+    }
 
-            <input
-              type="text"
-              placeholder="E.g “Johndoe@gmail.com” or “johndoe_25”"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00FFD1] transition-all"
-            />
-          </div>
-          <div className="flex flex-col gap-2 mt-5">
-            <label htmlFor="Email" className="text-sm">
-              Password
-            </label>
+    return (
+      <>
+        <div className="text-center">
+          <h3 className="text-base font-bold text-white">Welcome Back!</h3>
+          <p className="text-xs text-gray-400">Let&apos;s pick up where you left off.</p>
+        </div>
 
-            <input
-              type="password"
-              placeholder="Enter Password"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00FFD1] transition-all"
-            />
+        {error && (
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-500 rounded-lg">
+            <p className="text-sm text-red-500">{error}</p>
           </div>
-          <div>
-            <div className="flex justify-between items-center mt-5">
-              <input type="checkbox" name="" id="" className="b" />
-              <label htmlFor="" className="text-xs ml-2">
-                Remember me
-              </label>
-            </div>
-          </div>
-        </div> */}
-        <Link
-          href="/"
-          className="bg-white rounded-lg flex items-center justify-center gap-2 text-black font-semibold py-2 mt-5 hover:bg-gray-200 transition-all"
+        )}
+
+        <button
+          onClick={() => login()}
+          disabled={loading}
+          className="w-full bg-white rounded-lg flex items-center justify-center gap-2 text-black font-semibold py-2 mt-5 hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FcGoogle size={20} />
-          <p className="text-sm">Sign In with google</p>
-        </Link>{" "}
+          <p className="text-sm">Sign In with Google</p>
+        </button>
+      </>
+    );
+  };
+
+  return (
+    <div className="px-[5%] lg:px-[10%] max-w-2xl mx-auto">
+      <div className="border border-white rounded-lg bg-black shadow-2xl py-8 px-5">
+        {renderContent()}
       </div>
     </div>
   );
-};
+}
 
-export default page;

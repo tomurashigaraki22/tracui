@@ -4,21 +4,83 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { BiPackage, BiShoppingBag } from "react-icons/bi";
 import { BsTruck } from "react-icons/bs";
+import { useState } from "react";
+import { createNewWallet, getWalletBalance } from '@/utils/wallet';
+import LoadingSpinner from "@/components/LoadingSpinner";
+
 // import { Package, Truck, ShoppingBag } from "lucide-react";
 // import { useAuth } from "../../contexts/AuthContext";
 
-const RoleSelection = () => {
+export default function RoleSelection() {
   //   const { setRole, user } = useAuth();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useRouter();
 
-  const handleRoleSelect = (role: "seller" | "logistics" | "consumer") => {
-    // setRole(role);
-    navigate.push(`/user/${role}/dashboard`);
+  const loginNow = async (role: "SUPPLIER" | "RETAILER" | "CONSUMER") => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get user data from localStorage
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      // Create new wallet
+      const walletInfo = await createNewWallet(userData.email);
+      console.log('Created new wallet:', walletInfo.address);
+
+      // Optional: Check initial balance
+      const balance = await getWalletBalance(walletInfo.address);
+      console.log('Initial wallet balance:', balance);
+
+      // Make API request with wallet address
+      const response = await fetch('https://tracui-backend.onrender.com/auth/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...userData,
+          account_type: role,
+          address: walletInfo.address,
+          private_key: walletInfo.privateKey,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to authenticate with server');
+      }
+
+      const data = await response.json();
+      console.log('Auth response:', data);
+
+      // Store auth and wallet data
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('email', data.email);
+      localStorage.setItem('name', data.name);
+      localStorage.setItem('wallet_address', walletInfo.address);
+      localStorage.setItem('wallet_private_key', walletInfo.privateKey); // Be careful with this!
+      localStorage.setItem('wallet_public_key', walletInfo.publicKey);
+
+      // Navigate to dashboard
+      navigate.push('/dashboard');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to complete login');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // const handleRoleSelect = (role: "seller" | "logistics" | "consumer") => {
+  //   // setRole(role);
+
+  //   navigate.push(`/user/${role}/dashboard`);
+  // };
 
   const roles = [
     {
-      id: "seller",
+      id: "SUPPLIER",
       title: "Seller",
       description: "Manage products, set thresholds, view shipping status",
       icon: <BiPackage size={24} className="text-primary-500" />,
@@ -26,7 +88,7 @@ const RoleSelection = () => {
       buttonClass: "bg-primary-500 hover:bg-primary-600",
     },
     {
-      id: "logistics",
+      id: "RETAILER",
       title: "Logistics",
       description: "Verify packages, manage shipments, track product data",
       icon: <BsTruck size={24} className="text-secondary-500" />,
@@ -34,7 +96,7 @@ const RoleSelection = () => {
       buttonClass: "bg-secondary-500 hover:bg-secondary-600",
     },
     {
-      id: "consumer",
+      id: "CONSUMER",
       title: "Consumer",
       description:
         "Track incoming shipments, view product history, sign for deliveries",
@@ -59,6 +121,14 @@ const RoleSelection = () => {
     show: { y: 0, opacity: 1 },
   };
 
+    if (loading) {
+      return (
+        <div className="py-8">
+          <LoadingSpinner />
+        </div>
+      );
+    }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 p-4">
       <div className="max-w-4xl w-full">
@@ -81,7 +151,7 @@ const RoleSelection = () => {
             <motion.div
               key={role.id}
               onClick={() =>
-                handleRoleSelect(role.id as "seller" | "logistics" | "consumer")
+                loginNow(role.id as "SUPPLIER" | "RETAILER" | "CONSUMER")
               }
               variants={itemVariants}
               className={`card card-hover cursor-pointer p-6 ${role.color}`}
@@ -122,6 +192,7 @@ const RoleSelection = () => {
       </div>
     </div>
   );
+
+  
 };
 
-export default RoleSelection;
