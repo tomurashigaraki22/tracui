@@ -110,11 +110,12 @@ export async function POST(request: NextRequest) {
 // Get all products
 export async function GET(request: NextRequest) {
   try {
-    verifyToken(request);
+    const decodedToken = verifyToken(request) as { id: string };
+    const userId = decodedToken.id;
     const connection = await pool.getConnection();
     
     try {
-      const [products] = await connection.execute('SELECT * FROM products ORDER BY created_at DESC');
+      const [products] = await connection.execute('SELECT * FROM products WHERE user_id = ? ORDER BY created_at DESC', [userId]);
       return NextResponse.json({ products }, { status: 200 });
     } finally {
       connection.release();
