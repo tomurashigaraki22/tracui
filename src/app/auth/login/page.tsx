@@ -11,7 +11,7 @@ const page: React.FC = () => {
       <div className="border borfer-white rounded-lg bg-black shadow-2xl py-8 px-5">
         <div className="text-center">
           <h3 className="text-base font-bold">Welcome Back!</h3>
-          <p className="text-xs">Let’s pick up where you left off.</p>
+          <p className="text-xs">Let&apos;s pick up where you left off.</p>
         </div>
         {/* <div>
           <div className="flex flex-col gap-2 mt-5">
