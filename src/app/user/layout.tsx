@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // if (!savedRole) {
     //   // Redirect to role selection if no role is set
-    //   router.push("/role-selection");
+    //   router.push("/roleselection");
     //   return;
     // }
 

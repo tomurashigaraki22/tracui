@@ -19,16 +19,24 @@ ChartJS.register(
   Legend
 );
 
-const SuccessRateChart = () => {
+interface SuccessRateChartProps {
+  months: string[];
+  deliveries: number[];
+}
+
+const SuccessRateChart: React.FC<SuccessRateChartProps> = ({
+  months,
+  deliveries,
+}) => {
   const data = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    labels: months,
     datasets: [
       {
-        label: "Success Rate",
-        data: [89, 92, 95, 91, 94, 96],
+        label: "Deliveries",
+        data: deliveries,
         fill: false,
-        borderColor: "#10B981", // emerald
-        backgroundColor: "#10B981",
+        borderColor: "#00FFD1", // Changed to match your brand color
+        backgroundColor: "#00FFD1",
         tension: 0.3,
       },
     ],
@@ -44,10 +52,10 @@ const SuccessRateChart = () => {
     scales: {
       y: {
         ticks: {
-          callback: (value: any) => `${value}%`,
+          callback: (value: any) => value,
         },
         min: 0,
-        max: 100,
+        max: Math.max(...deliveries) + 50, // Dynamic max based on data
       },
     },
   };

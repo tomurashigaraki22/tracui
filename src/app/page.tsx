@@ -110,7 +110,7 @@ export default function Home() {
             </p>
             <div className="mt-8 ">
               <Link
-                href="/scan"
+                href="/login"
                 className="w-fit text-white bg-[rgba(0,255,209,0.2)] font-semibold backdrop-blur-md rounded px-4 py-2"
               >
                 Scan A Product
@@ -295,7 +295,7 @@ export default function Home() {
           </div>
           <div className="flex gap-5 bg-[#343434] justify-center mt-10 font-semibold">
             <Link
-              href="/scan"
+              href="/login"
               className="rounded-lg px-5 py-2 bg-[#00FFD1] text-black"
             >
               Scan a product
