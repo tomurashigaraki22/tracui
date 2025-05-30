@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import pool from '@/lib/mysql';
 import type { RowDataPacket } from 'mysql2';
-import jwt from 'jsonwebtoken';
 
 interface LogisticsUser extends RowDataPacket {
     id: number;
@@ -16,7 +15,7 @@ interface LogisticsUser extends RowDataPacket {
 interface Product extends RowDataPacket {
     id: number;
     product_code: string;
-    name: string;
+    product_name: string;
     status: string;
     logistics_wallet_address: string;
     logistics_location: string;
@@ -61,7 +60,7 @@ export async function POST(request: NextRequest) {
             }
 
             const [products] = await connection.execute<Product[]>(
-                'SELECT id, product_code, product_name, status, user_id, delivery_fee FROM products WHERE id = ?',
+                'SELECT id, product_code, product_name, status, delivery_fee FROM products WHERE id = ?',
                 [product_id]
             );
 
@@ -73,10 +72,10 @@ export async function POST(request: NextRequest) {
             }
 
             const product = products[0];
-
-            if (product.status === 'in_transit') {
+            
+            if (product.status === 'delivered') {
                 return NextResponse.json({
-                    message: "Already handed over",
+                    message: 'Already completed',
                     logistics: {
                         name: logisticsUser.name,
                         email: logisticsUser.email,
@@ -86,37 +85,24 @@ export async function POST(request: NextRequest) {
                     product: product
                 });
             }
-
-            const [users2] = await connection.execute<LogisticsUser[]>(
-                'SELECT balance FROM users WHERE id = ?',
-                [product.user_id]
-            );
-
-            const user = users2[0];
-            if (user.balance < product.delivery_fee) {
-                return NextResponse.json(
-                    { error: 'Insufficient balance to cover delivery fee' },
-                    { status: 400 }
-                );
-            }
+            
+            const logisticsAmount = product.delivery_fee * 0.95;
 
             await connection.execute(
-                'UPDATE users SET balance = balance - ? WHERE id = ?',
-                [product.delivery_fee, product.user_id]
+                'UPDATE users SET balance = balance + ? WHERE id = ?',
+                [logisticsAmount, logistics_id]
             );
 
             await connection.execute(
                 'INSERT INTO transactions (user_id, amount, type, description) VALUES (?, ?, ?, ?)',
-                [product.user_id, product.delivery_fee, 'debit', `Payment for delivery of product ${product.product_code}`]
+                [logistics_id, logisticsAmount, 'credit', `Payment received for delivery of product ${product.product_code}`]
             );
 
             await connection.execute(
                 `UPDATE products 
-                SET logistics_wallet_address = ?,
-                    logistics_location = ?,
-                    status = 'in_transit'
+                SET status = 'delivered'
                 WHERE id = ?`,
-                [logisticsUser.address, logisticsUser.address, product_id]
+                [product_id]
             );
 
             const [updatedProducts] = await connection.execute<Product[]>(
@@ -125,7 +111,7 @@ export async function POST(request: NextRequest) {
             );
 
             return NextResponse.json({
-                message: "Logistics handover successfully",
+                message: 'Logistics Completed',
                 logistics: {
                     name: logisticsUser.name,
                     email: logisticsUser.email,
@@ -138,7 +124,7 @@ export async function POST(request: NextRequest) {
             connection.release();
         }
     } catch (error: any) {
-        console.error('Logistics handover error:', error);
+        console.error('Logistics completion error:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }
