@@ -41,11 +41,12 @@ export async function GET(request: NextRequest, { params }: { params: { productC
   try {
     verifyToken(request);
     const connection = await pool.getConnection();
+    const { productCode } = await params;
     
     try {
       const [products] = await connection.execute<Product[]>(
         'SELECT * FROM products WHERE product_code = ?',
-        [params.productCode]
+        [productCode]
       );
 
       if (products.length === 0) {
@@ -66,11 +67,16 @@ export async function PUT(request: NextRequest, { params }: { params: { productC
     verifyToken(request);
     const body = await request.json();
     const connection = await pool.getConnection();
+    const { productCode } = await params;
     
     try {
+      const updateFields = Object.entries(body)
+        .map(([key]) => `${key} = ?`)
+        .join(', ');
+      
       const [result] = await connection.execute(
-        'UPDATE products SET ? WHERE product_code = ?',
-        [body, params.productCode]
+        `UPDATE products SET ${updateFields} WHERE product_code = ?`,
+        [...Object.values(body), productCode]
       );
 
       if ((result as any).affectedRows === 0) {

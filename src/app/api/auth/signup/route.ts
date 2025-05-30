@@ -19,14 +19,20 @@ export async function POST(request: NextRequest) {
 
     try {
       const [existingUser] = await connection.execute(
-        'SELECT email FROM users WHERE email = ?',
+        'SELECT id FROM users WHERE email = ?',
         [email]
       );
 
       if (Array.isArray(existingUser) && existingUser.length > 0) {
+        const userId = (existingUser[0] as { id: number }).id;
+        const token = jwt.sign({ id: userId }, process.env.JWT_SECRET || 'your-secret-key');
+        
         return NextResponse.json(
-          { error: 'Email already exists' },
-          { status: 409 }
+          { 
+            message: 'User loggedin Successfully!',
+            token
+          },
+          { status: 200 }
         );
       }
 
