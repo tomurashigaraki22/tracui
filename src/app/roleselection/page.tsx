@@ -13,7 +13,7 @@ const RoleSelection = () => {
 
   const handleRoleSelect = (role: "seller" | "logistics" | "consumer") => {
     // setRole(role);
-    navigate.push(`/${role}/dashboard`);
+    navigate.push(`/user/${role}/dashboard`);
   };
 
   const roles = [
