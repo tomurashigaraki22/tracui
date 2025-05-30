@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://tracui.pxxl.tech"; // Replace with your actual API base URL
+export const API_BASE_URL = ""; // Replace with your actual API base URL
 
 export const API_ROUTES = {
   // Consumer routes

@@ -34,7 +34,7 @@ export default function RoleSelection() {
       console.log("Initial wallet balance:", balance);
 
       // Make API request with wallet address
-      const response = await fetch("https://tracui.pxxl.tech/api/auth/signup", {
+      const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
