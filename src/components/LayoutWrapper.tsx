@@ -10,13 +10,14 @@ export default function LayoutWrapper({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isAuthPage = pathname.startsWith("/auth");
+  const showNavbarAndFooter =
+    !pathname.startsWith("/auth") && !pathname.startsWith("/user");
 
   return (
     <>
-      {!isAuthPage && <Navbar />}
+      {showNavbarAndFooter && <Navbar />}
       <main>{children}</main>
-      {!isAuthPage && <Footer />}
+      {showNavbarAndFooter && <Footer />}
     </>
   );
 }

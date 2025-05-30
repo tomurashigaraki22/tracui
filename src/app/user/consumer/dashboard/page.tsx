@@ -1,7 +1,7 @@
 import React from "react";
 
 const page: React.FC = () => {
-  return <div>page</div>;
+  return <div>Consumer Dashboard</div>;
 };
 
 export default page;
