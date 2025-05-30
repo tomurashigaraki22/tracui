@@ -295,7 +295,7 @@ export default function Home() {
           </div>
           <div className="flex gap-5 bg-[#343434] justify-center mt-10 font-semibold">
             <Link
-              href="/scan"
+              href="/login"
               className="rounded-lg px-5 py-2 bg-[#00FFD1] text-black"
             >
               Scan a product
