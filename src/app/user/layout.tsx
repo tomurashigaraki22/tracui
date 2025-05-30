@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // if (!savedRole) {
     //   // Redirect to role selection if no role is set
-    //   router.push("/role-selection");
+    //   router.push("/roleselection");
     //   return;
     // }
 
@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen">
-      <Sidebar role="seller" />
+      <Sidebar role="logistics" />
       <main className="flex-1 overflow-y-auto bg-gray-50 p-6">{children}</main>
     </div>
   );

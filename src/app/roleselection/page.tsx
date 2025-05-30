@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { BiPackage, BiShoppingBag } from "react-icons/bi";
 import { BsTruck } from "react-icons/bs";
 import { useState } from "react";
-import { createNewWallet, getWalletBalance } from '@/utils/wallet';
+import { createNewWallet, getWalletBalance } from "@/utils/wallet";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 // import { Package, Truck, ShoppingBag } from "lucide-react";
@@ -17,27 +17,27 @@ export default function RoleSelection() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useRouter();
 
-  const loginNow = async (role: "SUPPLIER" | "RETAILER" | "CONSUMER") => {
+  const loginNow = async (role: "seller" | "logistics" | "consumer") => {
     try {
       setLoading(true);
       setError(null);
 
       // Get user data from localStorage
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-      
+      const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+
       // Create new wallet
       const walletInfo = await createNewWallet(userData.email);
-      console.log('Created new wallet:', walletInfo.address);
+      console.log("Created new wallet:", walletInfo.address);
 
       // Optional: Check initial balance
       const balance = await getWalletBalance(walletInfo.address);
-      console.log('Initial wallet balance:', balance);
+      console.log("Initial wallet balance:", balance);
 
       // Make API request with wallet address
-      const response = await fetch('https://tracui-backend.onrender.com/auth/', {
-        method: 'POST',
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...userData,
@@ -48,25 +48,26 @@ export default function RoleSelection() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to authenticate with server');
+        throw new Error("Failed to authenticate with server");
       }
 
       const data = await response.json();
-      console.log('Auth response:', data);
+      console.log("Auth response:", data);
 
       // Store auth and wallet data
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('email', data.email);
-      localStorage.setItem('name', data.name);
-      localStorage.setItem('wallet_address', walletInfo.address);
-      localStorage.setItem('wallet_private_key', walletInfo.privateKey); // Be careful with this!
-      localStorage.setItem('wallet_public_key', walletInfo.publicKey);
+      localStorage.setItem("access_token", data.token);
+      //   localStorage.setItem("email", data.email);
+      //   localStorage.setItem("name", data.name);
+      //   localStorage.setItem("wallet_address", walletInfo.address);
+      //   localStorage.setItem("wallet_private_key", walletInfo.privateKey); // Be careful with this!
+      //   localStorage.setItem("wallet_public_key", walletInfo.publicKey);
+      localStorage.setItem("userRole", role);
 
       // Navigate to dashboard
-      navigate.push('/dashboard');
+      navigate.push(`/user/${role}/overview`);
     } catch (err) {
-      console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to complete login');
+      console.error("Login error:", err);
+      setError(err instanceof Error ? err.message : "Failed to complete login");
     } finally {
       setLoading(false);
     }
@@ -80,7 +81,7 @@ export default function RoleSelection() {
 
   const roles = [
     {
-      id: "SUPPLIER",
+      id: "seller",
       title: "Seller",
       description: "Manage products, set thresholds, view shipping status",
       icon: <BiPackage size={24} className="text-primary-500" />,
@@ -88,7 +89,7 @@ export default function RoleSelection() {
       buttonClass: "bg-primary-500 hover:bg-primary-600",
     },
     {
-      id: "RETAILER",
+      id: "logistics",
       title: "Logistics",
       description: "Verify packages, manage shipments, track product data",
       icon: <BsTruck size={24} className="text-secondary-500" />,
@@ -96,7 +97,7 @@ export default function RoleSelection() {
       buttonClass: "bg-secondary-500 hover:bg-secondary-600",
     },
     {
-      id: "CONSUMER",
+      id: "consumer",
       title: "Consumer",
       description:
         "Track incoming shipments, view product history, sign for deliveries",
@@ -121,13 +122,13 @@ export default function RoleSelection() {
     show: { y: 0, opacity: 1 },
   };
 
-    if (loading) {
-      return (
-        <div className="py-8">
-          <LoadingSpinner />
-        </div>
-      );
-    }
+  if (loading) {
+    return (
+      <div className="py-8">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 p-4">
@@ -151,7 +152,7 @@ export default function RoleSelection() {
             <motion.div
               key={role.id}
               onClick={() =>
-                loginNow(role.id as "SUPPLIER" | "RETAILER" | "CONSUMER")
+                loginNow(role.id as "seller" | "logistics" | "consumer")
               }
               variants={itemVariants}
               className={`card card-hover cursor-pointer p-6 ${role.color}`}
@@ -192,7 +193,4 @@ export default function RoleSelection() {
       </div>
     </div>
   );
-
-  
-};
-
+}
