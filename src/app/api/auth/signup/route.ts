@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import pool from '@/lib/mysql';
+import jwt from 'jsonwebtoken';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,13 +30,19 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      await connection.execute(
+      const [result] = await connection.execute(
         'INSERT INTO users (access_token, email, name, picture, account_type, private_key, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [access_token, email, name, picture, account_type, private_key, address]
       );
 
+      const userId = (result as any).insertId;
+      const token = jwt.sign({ id: userId }, process.env.JWT_SECRET || 'your-secret-key');
+
       return NextResponse.json(
-        { message: 'User created successfully' },
+        { 
+          message: 'User created successfully',
+          token
+        },
         { status: 201 }
       );
     } finally {
