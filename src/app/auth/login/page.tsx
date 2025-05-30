@@ -12,54 +12,7 @@ const page: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          {/* <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-gray-300">Email</label>
-            <input
-              type="email"
-              id="email"
-              placeholder="Enter your email"
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00FFD1] focus:border-transparent transition-all"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-gray-300">Password</label>
-            <input
-              type="password"
-              id="password"
-              placeholder="Enter your password"
-              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00FFD1] focus:border-transparent transition-all"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="remember"
-                className="h-4 w-4 rounded border-gray-300 text-[#00FFD1] focus:ring-[#00FFD1]"
-              />
-              <label htmlFor="remember" className="ml-2 text-sm text-gray-400">
-                Remember me
-              </label>
-            </div>
-            <Link href="/auth/forgot-password" className="text-sm text-[#00FFD1] hover:text-[#00FFD1]/80 transition-colors">
-              Forgot password?
-            </Link>
-          </div>
-
-          <button className="w-full bg-gradient-to-r from-[#00FFD1] to-[#00FFD1]/80 text-black font-semibold py-3 rounded-xl hover:opacity-90 transition-all">
-            Sign In
-          </button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-black text-gray-400">Or continue with</span>
-            </div>
-          </div> */}
+ 
 
           <Link
             href="/"
