@@ -51,9 +51,10 @@ const SellerOverviewPage = () => {
         if (!response.ok) {
           throw new Error("Failed to fetch data");
         }
-        console.log("Bearer token:", token);
+        // console.log("Bearer token:", token);
 
         const data = await response.json();
+        console.log(data)
         setData(data);
       } catch (err) {
         setError("Failed to load overview data");
@@ -125,11 +126,10 @@ const SellerOverviewPage = () => {
               {Number(data.success_rate.current).toFixed(1)}%
             </span>
             <span
-              className={`${
-                data.success_rate.change >= 0
+              className={`${data.success_rate.change >= 0
                   ? "text-green-500"
                   : "text-red-500"
-              } font-semibold mt-3 flex items-center`}
+                } font-semibold mt-3 flex items-center`}
             >
               {data.success_rate.change >= 0 ? (
                 <BiTrendingUp className="h-6 w-6 mr-1" />

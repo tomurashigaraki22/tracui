@@ -60,6 +60,7 @@ const ConsumerOverviewPage = () => {
         }
 
         const data = await response.json();
+        console.log("Data fetched:", data)
         setData(data);
       } catch (err) {
         setError("Failed to load overview data");
@@ -125,11 +126,10 @@ const ConsumerOverviewPage = () => {
               {Number(data.delivery_rate.current).toFixed(1)}%
             </span>
             <span
-              className={`${
-                data.delivery_rate.change >= 0
+              className={`${data.delivery_rate.change >= 0
                   ? "text-green-500"
                   : "text-red-500"
-              } font-semibold mt-3 flex items-center`}
+                } font-semibold mt-3 flex items-center`}
             >
               {data.delivery_rate.change >= 0 ? (
                 <BiTrendingUp className="h-6 w-6 mr-1" />
