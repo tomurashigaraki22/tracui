@@ -110,7 +110,7 @@ export default function Home() {
             </p>
             <div className="mt-8 ">
               <Link
-                href="/scan"
+                href="/login"
                 className="w-fit text-white bg-[rgba(0,255,209,0.2)] font-semibold backdrop-blur-md rounded px-4 py-2"
               >
                 Scan A Product

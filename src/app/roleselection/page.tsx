@@ -34,21 +34,18 @@ export default function RoleSelection() {
       console.log("Initial wallet balance:", balance);
 
       // Make API request with wallet address
-      const response = await fetch(
-        "https://tracui-backend.onrender.com/auth/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...userData,
-            account_type: role,
-            address: walletInfo.address,
-            private_key: walletInfo.privateKey,
-          }),
-        }
-      );
+      const response = await fetch("https://tracui.pxxl.tech/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...userData,
+          account_type: role,
+          address: walletInfo.address,
+          private_key: walletInfo.privateKey,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to authenticate with server");
@@ -58,16 +55,16 @@ export default function RoleSelection() {
       console.log("Auth response:", data);
 
       // Store auth and wallet data
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("email", data.email);
-      localStorage.setItem("name", data.name);
-      localStorage.setItem("wallet_address", walletInfo.address);
-      localStorage.setItem("wallet_private_key", walletInfo.privateKey); // Be careful with this!
-      localStorage.setItem("wallet_public_key", walletInfo.publicKey);
+      localStorage.setItem("access_token", data.token);
+      //   localStorage.setItem("email", data.email);
+      //   localStorage.setItem("name", data.name);
+      //   localStorage.setItem("wallet_address", walletInfo.address);
+      //   localStorage.setItem("wallet_private_key", walletInfo.privateKey); // Be careful with this!
+      //   localStorage.setItem("wallet_public_key", walletInfo.publicKey);
       localStorage.setItem("userRole", role);
 
       // Navigate to dashboard
-      navigate.push(`/user/${role}/dashboard`);
+      navigate.push(`/user/${role}/overview`);
     } catch (err) {
       console.error("Login error:", err);
       setError(err instanceof Error ? err.message : "Failed to complete login");
@@ -84,7 +81,7 @@ export default function RoleSelection() {
 
   const roles = [
     {
-      id: "SUPPLIER",
+      id: "seller",
       title: "Seller",
       description: "Manage products, set thresholds, view shipping status",
       icon: <BiPackage size={24} className="text-primary-500" />,
@@ -92,7 +89,7 @@ export default function RoleSelection() {
       buttonClass: "bg-primary-500 hover:bg-primary-600",
     },
     {
-      id: "RETAILER",
+      id: "logistics",
       title: "Logistics",
       description: "Verify packages, manage shipments, track product data",
       icon: <BsTruck size={24} className="text-secondary-500" />,
@@ -100,7 +97,7 @@ export default function RoleSelection() {
       buttonClass: "bg-secondary-500 hover:bg-secondary-600",
     },
     {
-      id: "CONSUMER",
+      id: "consumer",
       title: "Consumer",
       description:
         "Track incoming shipments, view product history, sign for deliveries",
