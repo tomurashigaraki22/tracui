@@ -14,10 +14,10 @@ import { BsTruckFlatbed } from "react-icons/bs";
 
 interface LogisticsOverviewResponse {
   metrics: {
-    totalProducts: number;
-    productsInTransit: number;
-    successfulDeliveries: number;
-    failedDeliveries: number;
+    total_products: number;
+    in_transit: number;
+    delivered: number;
+    failed: number;
   };
   chart_data: {
     months: string[];
@@ -53,6 +53,7 @@ const LogisticsOverviewPage = () => {
 
         const data = await response.json();
         setData(data);
+        console.log(data);
       } catch (err) {
         setError("Failed to load overview data");
         console.error(err);
@@ -86,22 +87,22 @@ const LogisticsOverviewPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Total Deliveries"
-          value={data.metrics.totalProducts}
+          value={data.metrics.total_products}
           icon={<BiPackage className="h-6 w-6" />}
         />
         <MetricCard
           title="In Transit"
-          value={data.metrics.productsInTransit}
+          value={data.metrics.in_transit}
           icon={<BsTruckFlatbed className="h-6 w-6" />}
         />
         <MetricCard
           title="Successful Deliveries"
-          value={data.metrics.successfulDeliveries}
+          value={data.metrics.delivered}
           icon={<BiCheckCircle className="h-6 w-6" />}
         />
         <MetricCard
           title="Failed Deliveries"
-          value={data.metrics.failedDeliveries}
+          value={data.metrics.failed}
           icon={<BiXCircle className="h-6 w-6" />}
         />
       </div>

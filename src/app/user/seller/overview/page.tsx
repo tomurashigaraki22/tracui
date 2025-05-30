@@ -54,6 +54,7 @@ const SellerOverviewPage = () => {
         console.log("Bearer token:", token);
 
         const data = await response.json();
+        console.log(data);
         setData(data);
       } catch (err) {
         setError("Failed to load overview data");

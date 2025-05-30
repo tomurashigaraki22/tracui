@@ -45,15 +45,12 @@ const ConsumerOverviewPage = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("user_token"); // Get token from localStorage
-        const response = await fetch(
-          "api/dashboard/stats",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const response = await fetch("/api/dashboard/stats", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         if (!response.ok) {
           throw new Error("Failed to fetch data");
