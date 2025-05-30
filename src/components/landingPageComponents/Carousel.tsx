@@ -1,8 +1,9 @@
+"use client"
 import React, { useEffect, useState } from "react";
 
 interface CarouselProps {
   children: React.ReactNode[];
-  interval?: number; // Optional: autoplay interval in ms
+  interval?: number;
 }
 
 const Carousel: React.FC<CarouselProps> = ({ children, interval = 3000 }) => {
@@ -37,9 +38,8 @@ const Carousel: React.FC<CarouselProps> = ({ children, interval = 3000 }) => {
           <button
             key={index}
             onClick={() => setCurrent(index)}
-            className={`w-3 h-3 rounded-full ${
-              index === current ? "bg-white" : "bg-gray-400"
-            }`}
+            className={`w-3 h-3 rounded-full ${index === current ? "bg-white" : "bg-gray-400"
+              }`}
           />
         ))}
       </div>

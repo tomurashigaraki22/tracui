@@ -1,10 +1,13 @@
+"use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
+
+type UserRole = 'consumer' | 'logistics' | 'seller';
 
 interface User {
   id: string;
   email: string;
-  // Add other user properties as needed
+  role: UserRole;
 }
 
 interface AuthContextType {
@@ -12,7 +15,9 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  signup: (email: string, password: string, role: UserRole) => Promise<void>;
   isAuthenticated: boolean;
+  setUserRole: (role: UserRole) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,7 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        // Verify token and get user data
         const response = await axios.get('/api/user', {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -43,11 +47,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signup = async (email: string, password: string, role: UserRole) => {
+    try {
+      // Dummy signup response
+      const dummyResponse = {
+        token: `dummy_token_${Date.now()}`,
+        user: {
+          id: `user_${Date.now()}`,
+          email,
+          role
+        }
+      };
+
+      localStorage.setItem('token', dummyResponse.token);
+      setUser(dummyResponse.user);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/api/login', { email, password });
-      localStorage.setItem('token', response.data.token);
-      setUser(response.data.user);
+      // For now, we'll use the stored dummy data
+      const token = localStorage.getItem('token');
+      if (token) {
+        const storedUser = {
+          id: token.split('_')[2],
+          email,
+          role: 'consumer' as UserRole
+        };
+        setUser(storedUser);
+      } else {
+        throw new Error('No user found');
+      }
     } catch (error) {
       throw error;
     }
@@ -58,8 +90,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const setUserRole = async (role: UserRole) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token || !user) throw new Error('Not authenticated');
+
+      const response = await axios.put('/api/user/role', 
+        { role },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+      setUser({ ...user, role: response.data.role });
+    } catch (error) {
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      logout,
+      signup, 
+      isAuthenticated: !!user,
+      setUserRole 
+    }}>
       {children}
     </AuthContext.Provider>
   );

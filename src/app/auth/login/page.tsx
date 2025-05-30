@@ -1,57 +1,81 @@
 import Link from "next/link";
 import React from "react";
-import { BsGoogle } from "react-icons/bs";
-import { CgGoogle } from "react-icons/cg";
 import { FcGoogle } from "react-icons/fc";
-import { GrGoogle } from "react-icons/gr";
 
 const page: React.FC = () => {
   return (
-    <div className="px-[5%] lg:px-[10%] max-w-2xl mx-auto">
-      <div className="border borfer-white rounded-lg bg-black shadow-2xl py-8 px-5">
-        <div className="text-center">
-          <h3 className="text-base font-bold">Welcome Back!</h3>
-          <p className="text-xs">Let&apos;s pick up where you left off.</p>
+    <div className="px-[5%] lg:px-[10%]  max-w-2xl mx-auto">
+      <div className="border border-white/10 rounded-2xl bg-black/80 backdrop-blur-xl shadow-2xl py-12 px-8">
+        <div className="text-center space-y-3 mb-8">
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-[#00FFD1] to-white bg-clip-text text-transparent">Welcome Back!</h3>
+          <p className="text-sm text-gray-400">Let's pick up where you left off.</p>
         </div>
-        {/* <div>
-          <div className="flex flex-col gap-2 mt-5">
-            <label htmlFor="Email" className="text-sm">
-              Email
-            </label>
 
+        <div className="space-y-6">
+          {/* <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium text-gray-300">Email</label>
             <input
-              type="text"
-              placeholder="E.g “Johndoe@gmail.com” or “johndoe_25”"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00FFD1] transition-all"
+              type="email"
+              id="email"
+              placeholder="Enter your email"
+              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00FFD1] focus:border-transparent transition-all"
             />
           </div>
-          <div className="flex flex-col gap-2 mt-5">
-            <label htmlFor="Email" className="text-sm">
-              Password
-            </label>
 
+          <div className="space-y-2">
+            <label htmlFor="password" className="text-sm font-medium text-gray-300">Password</label>
             <input
               type="password"
-              placeholder="Enter Password"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00FFD1] transition-all"
+              id="password"
+              placeholder="Enter your password"
+              className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00FFD1] focus:border-transparent transition-all"
             />
           </div>
-          <div>
-            <div className="flex justify-between items-center mt-5">
-              <input type="checkbox" name="" id="" className="b" />
-              <label htmlFor="" className="text-xs ml-2">
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="remember"
+                className="h-4 w-4 rounded border-gray-300 text-[#00FFD1] focus:ring-[#00FFD1]"
+              />
+              <label htmlFor="remember" className="ml-2 text-sm text-gray-400">
                 Remember me
               </label>
             </div>
+            <Link href="/auth/forgot-password" className="text-sm text-[#00FFD1] hover:text-[#00FFD1]/80 transition-colors">
+              Forgot password?
+            </Link>
           </div>
-        </div> */}
-        <Link
-          href="/"
-          className="bg-white rounded-lg flex items-center justify-center gap-2 text-black font-semibold py-2 mt-5 hover:bg-gray-200 transition-all"
-        >
-          <FcGoogle size={20} />
-          <p className="text-sm">Sign In with google</p>
-        </Link>{" "}
+
+          <button className="w-full bg-gradient-to-r from-[#00FFD1] to-[#00FFD1]/80 text-black font-semibold py-3 rounded-xl hover:opacity-90 transition-all">
+            Sign In
+          </button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-black text-gray-400">Or continue with</span>
+            </div>
+          </div> */}
+
+          <Link
+            href="/"
+            className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-xl py-3 hover:bg-white/10 transition-all"
+          >
+            <FcGoogle size={20} />
+            <span className="text-sm font-medium">Sign in with Google</span>
+          </Link>
+
+          <p className="text-center text-sm text-gray-400">
+            Don't have an account?{" "}
+            <Link href="/auth/signup" className="text-[#00FFD1] hover:text-[#00FFD1]/80 transition-colors">
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
