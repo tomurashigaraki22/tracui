@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
+import { FaBox, FaUser, FaClipboardList } from 'react-icons/fa';
+import { BiTrendingUp, BiTrendingDown } from 'react-icons/bi';
+import { TbTemperature, TbDroplet, TbGauge, TbAccessPoint } from 'react-icons/tb';
+
 interface Record {
     id: number;
     logistics_id: number | null;
@@ -19,7 +23,12 @@ interface Customer {
     email: string;
     account_type: string;
 }
-
+interface StatusCardProps {
+    icon: React.ReactNode;
+    title: string;
+    items: Array<{ label: string; value: string }>;
+    className?: string;
+}
 interface Product {
     id: number;
     product_code: string;
@@ -27,10 +36,22 @@ interface Product {
     status: string;
 }
 
+interface Log {
+    id: number;
+    product_id: number;
+    temperature: number;
+    humidity: number;
+    pressure: number;
+    shock: number;
+    tilt: number;
+    created_at: string;
+}
+
 interface ScanStatus {
     record: Record;
     customer: Customer;
     product: Product;
+    logs: Log[];
 }
 
 export default function Preview() {
@@ -88,46 +109,140 @@ export default function Preview() {
         );
     }
 
+    const calculateTrend = (current: number, previous: number) => {
+        const percentage = ((current - previous) / previous) * 100;
+        return {
+            value: Math.abs(percentage).toFixed(1),
+            isIncrease: percentage > 0,
+            color: percentage > 0 ? 'text-red-500' : 'text-green-500'
+        };
+    };
+
+    const getLatestMetrics = () => {
+        if (!status.logs || status.logs.length < 2) return null;
+        const latest = status.logs[0];
+        const previous = status.logs[1];
+
+        return {
+            temperature: calculateTrend(latest.temperature, previous.temperature),
+            humidity: calculateTrend(latest.humidity, previous.humidity),
+            pressure: calculateTrend(latest.pressure, previous.pressure),
+            shock: calculateTrend(latest.shock, previous.shock),
+            tilt: calculateTrend(latest.tilt, previous.tilt)
+        };
+    };
+
+    const metrics = getLatestMetrics();
+
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-4">
-            <div className="w-full max-w-5xl space-y-12">
-                <div className="text-center space-y-4">
-                    <h1 className="text-6xl font-bold text-gray-900">
+        <div className="min-h-screen bg-white p-4 lg:p-8">
+            <div className="max-w-8xl mx-auto space-y-8">
+                <div className="text-center space-y-4 mb-12">
+                    <h1 className="text-4xl md:text-6xl font-bold text-gray-900">
                         Current Status: <span className="text-[#00FFD1]">{status.record.status.toUpperCase()}</span>
                     </h1>
-                    <p className="text-2xl text-gray-600">
+                    <p className="text-xl md:text-2xl text-gray-600">
                         {status.record.live === 1 ? 'LIVE' : 'INACTIVE'}
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <StatusCard
-                        title="Product Details"
-                        items={[
-                            { label: 'Product Name', value: status.product.product_name },
-                            { label: 'Product Code', value: status.product.product_code },
-                            { label: 'Product Status', value: status.product.status }
-                        ]}
-                    />
-                    <StatusCard
-                        title="Customer Details"
-                        items={[
-                            { label: 'Name', value: status.customer.name },
-                            { label: 'Email', value: status.customer.email },
-                            { label: 'Account Type', value: status.customer.account_type }
-                        ]}
-                    />
-                    <StatusCard
-                        title="Record Details"
-                        items={[
-                            { label: 'Record ID', value: status.record.id.toString() },
-                            { label: 'Created', value: new Date(status.record.created_at).toLocaleString() },
-                            { label: 'Updated', value: new Date(status.record.updated_at).toLocaleString() }
-                        ]}
-                    />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-8 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <StatusCard
+                                icon={<FaBox className="w-6 h-6 text-[#00FFD1]" />}
+                                title="Product Details"
+                                items={[
+                                    { label: 'Product Name', value: status.product.product_name },
+                                    { label: 'Product Code', value: status.product.product_code },
+                                    { label: 'Product Status', value: status.product.status }
+                                ]}
+                                className="transform hover:scale-105 transition-transform duration-300"
+                            />
+                            <StatusCard
+                                icon={<FaUser className="w-6 h-6 text-[#00FFD1]" />}
+                                title="Customer Details"
+                                items={[
+                                    { label: 'Name', value: status.customer.name },
+                                    { label: 'Email', value: status.customer.email },
+                                    { label: 'Account Type', value: status.customer.account_type }
+                                ]}
+                                className="transform hover:scale-105 transition-transform duration-300"
+                            />
+                            <StatusCard
+                                icon={<FaClipboardList className="w-6 h-6 text-[#00FFD1]" />}
+                                title="Record Details"
+                                items={[
+                                    { label: 'Record ID', value: status.record.id.toString() },
+                                    { label: 'Created', value: new Date(status.record.created_at).toLocaleString() },
+                                    { label: 'Updated', value: new Date(status.record.updated_at).toLocaleString() }
+                                ]}
+                                className="md:col-span-2 lg:col-span-1 transform hover:scale-105 transition-transform duration-300"
+                            />
+                        </div>
+
+                        {metrics && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <MetricCard
+                                    icon={<TbTemperature className="w-6 h-6" />}
+                                    title="Temperature"
+                                    value={metrics.temperature}
+                                />
+                                <MetricCard
+                                    icon={<TbDroplet className="w-6 h-6" />}
+                                    title="Humidity"
+                                    value={metrics.humidity}
+                                />
+                                <MetricCard
+                                    icon={<TbGauge className="w-6 h-6" />}
+                                    title="Pressure"
+                                    value={metrics.pressure}
+                                />
+                                <MetricCard
+                                    icon={<TbAccessPoint className="w-6 h-6" />}
+                                    title="Shock"
+                                    value={metrics.shock}
+                                />
+                                <MetricCard
+                                    icon={<TbAccessPoint className="w-6 h-6" />}
+                                    title="Tilt"
+                                    value={metrics.tilt}
+                                    className="md:col-span-2 lg:col-span-1"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="lg:col-span-4 space-y-6">
+
+
+                        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 hover:border-[#00FFD1] transition-colors duration-300">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">Log History</h3>
+                            <div className="max-h-[calc(100vh-24rem)] overflow-y-auto pr-2 space-y-4">
+                                {status.logs && status.logs.length > 0 ? (
+                                    status.logs.map((log) => (
+                                        <div key={log.id} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                                <div className="flex justify-between items-center col-span-2 pb-2 mb-2 border-b border-gray-200">
+                                                    <span className="font-medium text-gray-900">{new Date(log.created_at).toLocaleTimeString()}</span>
+                                                </div>
+                                                <MetricItem label="Temperature" value={`${log.temperature}°C`} />
+                                                <MetricItem label="Humidity" value={`${log.humidity}%`} />
+                                                <MetricItem label="Pressure" value={`${log.pressure} hPa`} />
+                                                <MetricItem label="Shock" value={`${log.shock.toFixed(2)} g`} />
+                                                <MetricItem label="Tilt" value={`${log.tilt.toFixed(2)}°`} />
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500 text-center py-4">No logs available</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="text-center text-gray-500 text-lg">
+                <div className="text-center text-gray-500 text-sm md:text-base mt-8">
                     Last updated: {new Date().toLocaleString()}
                 </div>
             </div>
@@ -138,20 +253,61 @@ export default function Preview() {
 interface StatusCardProps {
     title: string;
     items: Array<{ label: string; value: string }>;
+    className?: string;
 }
 
-function StatusCard({ title, items }: StatusCardProps) {
+function StatusCard({ title, items, className = '' }: StatusCardProps) {
     return (
-        <div className="bg-gray-50 rounded-2xl p-8 shadow-lg border border-gray-100">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">{title}</h3>
-            <div className="space-y-4">
+        <div className={`bg-white rounded-2xl p-6 shadow-lg border border-gray-200 hover:border-[#00FFD1] transition-colors duration-300 ${className}`}>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">{title}</h3>
+            <div className="space-y-3">
                 {items.map((item, index) => (
                     <div key={index} className="flex flex-col">
                         <span className="text-sm font-medium text-gray-500">{item.label}</span>
-                        <span className="text-xl font-semibold text-gray-900">{item.value}</span>
+                        <span className="text-base font-semibold text-gray-900">{item.value}</span>
                     </div>
                 ))}
             </div>
         </div>
     );
 }
+
+function MetricItem({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex justify-between items-center">
+            <span className="text-gray-500">{label}:</span>
+            <span className="font-medium text-gray-900">{value}</span>
+        </div>
+    );
+}
+
+interface MetricCardProps {
+    icon: React.ReactNode;
+    title: string;
+    value: {
+        value: string;
+        isIncrease: boolean;
+        color: string;
+    };
+    className?: string;
+}
+
+const MetricCard = ({ icon, title, value, className = '' }: MetricCardProps) => (
+    <div className={`bg-white rounded-2xl p-6 shadow-lg border border-gray-200 hover:border-[#00FFD1] transition-all duration-300 transform hover:scale-105 ${className}`}>
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+                <span className="text-[#00FFD1]">{icon}</span>
+                <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+            </div>
+            <div className="flex items-center space-x-2">
+                <span className={`text-2xl font-bold ${value.color}`}>
+                    {value.value}%
+                </span>
+                {value.isIncrease ?
+                    <BiTrendingUp className={`w-6 h-6 ${value.color}`} /> :
+                    <BiTrendingDown className={`w-6 h-6 ${value.color}`} />
+                }
+            </div>
+        </div>
+    </div>
+);
