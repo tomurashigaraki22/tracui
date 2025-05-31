@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { API_ROUTES } from "@/utils/config";
 import {
   BiSearch,
   BiPackage,
@@ -9,75 +10,64 @@ import {
   BiXCircle,
 } from "react-icons/bi";
 
-type DeliveryStatus = "Successful" | "Failed";
-
 interface DeliveryHistory {
-  id: string;
-  productName: string;
-  status: DeliveryStatus;
-  senderName: string;
-  receiverName: string;
-  date: string;
-  reason?: string;
+  id: number;
+  product_code: string;
+  product_name: string;
+  sender_location: string;
+  receiver_location: string;
+  status: string;
+  created_at: string;
+  tracking_number: string;
+  delivered: number;
 }
 
-// Simulated API call
-const fetchDeliveryHistory = (): Promise<DeliveryHistory[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: "1",
-          productName: "iPhone 15 Pro",
-          status: "Successful",
-          senderName: "Apple Store",
-          receiverName: "John Smith",
-          date: "2025-05-30",
-        },
-        {
-          id: "2",
-          productName: "MacBook Air",
-          status: "Failed",
-          senderName: "Apple Store",
-          receiverName: "Sarah Johnson",
-          date: "2025-05-29",
-        },
-        {
-          id: "3",
-          productName: "AirPods Pro",
-          status: "Successful",
-          senderName: "Apple Store",
-          receiverName: "Mike Wilson",
-          date: "2025-05-28",
-        },
-      ]);
-    }, 1000);
-  });
-};
+interface APIResponse {
+  products: DeliveryHistory[];
+}
 
 export default function HistoryPage() {
   const [deliveries, setDeliveries] = useState<DeliveryHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof DeliveryHistory;
     direction: "ascending" | "descending";
   } | null>(null);
 
   useEffect(() => {
-    const loadDeliveries = async () => {
-      setLoading(true);
-      const data = await fetchDeliveryHistory();
-      setDeliveries(data);
-      setLoading(false);
+    const fetchDeliveries = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("access_token");
+        const response = await fetch(API_ROUTES.LOGISTICS.HISTORY, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch delivery history");
+        }
+
+        const data: APIResponse = await response.json();
+        setDeliveries(data.products);
+      } catch (err) {
+        setError("Failed to load delivery history");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadDeliveries();
+    fetchDeliveries();
   }, []);
 
   const statusCounts = deliveries.reduce(
     (acc, delivery) => {
-      if (delivery.status === "Successful") {
+      if (delivery.delivered === 1) {
         acc.successful++;
       } else {
         acc.failed++;
@@ -108,7 +98,7 @@ export default function HistoryPage() {
   };
 
   const sortedDeliveries = [...filteredDeliveries];
-  if (sortConfig !== null && sortConfig.key) {
+  if (sortConfig !== null) {
     sortedDeliveries.sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
@@ -125,20 +115,32 @@ export default function HistoryPage() {
     });
   }
 
-  const getStatusBadge = (status: DeliveryStatus) => {
+  const getStatusBadge = (delivered: number) => {
     const statusClasses = {
-      Successful: "bg-green-100 text-green-800",
-      Failed: "bg-red-100 text-red-800",
+      1: "bg-green-100 text-green-800",
+      0: "bg-red-100 text-red-800",
     };
 
     return (
       <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[status]}`}
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          statusClasses[delivered as keyof typeof statusClasses]
+        }`}
       >
-        {status}
+        {delivered === 1 ? "Successful" : "Failed"}
       </span>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-8 text-gray-500">Loading history...</div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-red-500">{error}</div>;
+  }
 
   return (
     <div className="p-6">
@@ -196,134 +198,66 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-8 text-gray-500">Loading history...</div>
-      ) : (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("productName")}
-                  >
-                    <div className="flex items-center">
-                      Product Name
-                      {sortConfig?.key === "productName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tracking Number
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Product Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  From
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  To
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {sortedDeliveries.map((delivery) => (
+                <tr key={delivery.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {delivery.tracking_number}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {delivery.product_name}
                     </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("status")}
-                  >
-                    <div className="flex items-center">
-                      Status
-                      {sortConfig?.key === "status" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("senderName")}
-                  >
-                    <div className="flex items-center">
-                      Sender
-                      {sortConfig?.key === "senderName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("receiverName")}
-                  >
-                    <div className="flex items-center">
-                      Receiver
-                      {sortConfig?.key === "receiverName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("date")}
-                  >
-                    <div className="flex items-center">
-                      Date
-                      {sortConfig?.key === "date" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {getStatusBadge(delivery.delivered)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {delivery.sender_location}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {delivery.receiver_location}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(delivery.created_at).toLocaleDateString()}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedDeliveries.map((delivery) => (
-                  <tr key={delivery.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {delivery.productName}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(delivery.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {delivery.senderName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {delivery.receiverName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {delivery.date}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {sortedDeliveries.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No delivery history found matching your search criteria.
-            </div>
-          )}
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {sortedDeliveries.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No delivery history found matching your search criteria.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

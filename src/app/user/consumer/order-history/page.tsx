@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { API_ROUTES } from "@/utils/config";
 import {
   BiSearch,
   BiPackage,
@@ -10,77 +11,66 @@ import {
   BiTime,
 } from "react-icons/bi";
 
-type OrderStatus = "Delivered" | "Cancelled" | "Returned";
-
 interface OrderHistory {
-  id: string;
-  productName: string;
-  status: OrderStatus;
-  orderDate: string;
-  deliveryDate?: string;
-  amount: string;
-  logisticsName: string;
+  id: number;
+  product_name: string;
+  status: string;
+  created_at: string;
+  delivered_at: string | null;
+  product_value: string;
+  logistics_wallet_address: string;
+  tracking_number: string;
 }
 
-// Simulated API call
-const fetchOrderHistory = (): Promise<OrderHistory[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: "1",
-          productName: "iPhone 15 Pro",
-          status: "Delivered",
-          orderDate: "2025-05-20",
-          deliveryDate: "2025-05-30",
-          amount: "$999",
-          logisticsName: "FedEx",
-        },
-        {
-          id: "2",
-          productName: "MacBook Air",
-          status: "Cancelled",
-          orderDate: "2025-05-15",
-          amount: "$1299",
-          logisticsName: "DHL",
-        },
-        {
-          id: "3",
-          productName: "AirPods Pro",
-          status: "Returned",
-          orderDate: "2025-05-10",
-          deliveryDate: "2025-05-28",
-          amount: "$249",
-          logisticsName: "UPS",
-        },
-      ]);
-    }, 1000);
-  });
-};
+interface APIResponse {
+  products: OrderHistory[];
+}
 
 export default function OrderHistoryPage() {
   const [orders, setOrders] = useState<OrderHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof OrderHistory;
     direction: "ascending" | "descending";
   } | null>(null);
 
   useEffect(() => {
-    const loadOrders = async () => {
-      setLoading(true);
-      const data = await fetchOrderHistory();
-      setOrders(data);
-      setLoading(false);
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("access_token");
+        const response = await fetch(API_ROUTES.CONSUMER.ORDER_HISTORY, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch order history");
+        }
+
+        const data: APIResponse = await response.json();
+        setOrders(data.products);
+      } catch (err) {
+        setError("Failed to load order history");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadOrders();
+    fetchOrders();
   }, []);
 
   const statusCounts = orders.reduce(
     (acc, order) => {
-      acc[order.status]++;
+      const status = order.status.toLowerCase();
+      if (status === "delivered") acc.Delivered++;
+      else if (status === "cancelled") acc.Cancelled++;
+      else if (status === "returned") acc.Returned++;
       acc.total++;
       return acc;
     },
@@ -125,18 +115,21 @@ export default function OrderHistoryPage() {
     });
   }
 
-  const getStatusBadge = (status: OrderStatus) => {
+  const getStatusBadge = (status: string) => {
     const statusClasses = {
-      Delivered: "bg-green-100 text-green-800",
-      Cancelled: "bg-red-100 text-red-800",
-      Returned: "bg-yellow-100 text-yellow-800",
+      delivered: "bg-green-100 text-green-800",
+      cancelled: "bg-red-100 text-red-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      in_transit: "bg-yellow-100 text-yellow-800",
     };
 
     return (
       <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[status]}`}
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          statusClasses[status.toLowerCase() as keyof typeof statusClasses]
+        }`}
       >
-        {status}
+        {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
   };
@@ -229,112 +222,48 @@ export default function OrderHistoryPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("productName")}
-                  >
-                    <div className="flex items-center">
-                      Product Name
-                      {sortConfig?.key === "productName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tracking Number
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("status")}
-                  >
-                    <div className="flex items-center">
-                      Status
-                      {sortConfig?.key === "status" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product Name
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("orderDate")}
-                  >
-                    <div className="flex items-center">
-                      Order Date
-                      {sortConfig?.key === "orderDate" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("amount")}
-                  >
-                    <div className="flex items-center">
-                      Amount
-                      {sortConfig?.key === "amount" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("logisticsName")}
-                  >
-                    <div className="flex items-center">
-                      Logistics
-                      {sortConfig?.key === "logisticsName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Logistics
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.tracking_number}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {order.productName}
+                        {order.product_name}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(order.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.orderDate}
+                      {new Date(order.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.amount}
+                      ${order.product_value}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.logisticsName}
+                      {order.logistics_wallet_address}
                     </td>
                   </tr>
                 ))}

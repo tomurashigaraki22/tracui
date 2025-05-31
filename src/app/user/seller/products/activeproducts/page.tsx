@@ -1,75 +1,29 @@
 "use client";
 import { useState, useEffect } from "react";
+import { API_ROUTES } from "@/utils/config";
 import {
   BiChevronDown,
   BiChevronUp,
   BiSearch,
   BiPackage,
   BiTime,
-  //   BiTruck,
   BiCheckCircle,
 } from "react-icons/bi";
 import { BsTruck } from "react-icons/bs";
 
-type ProductStatus = "Pending" | "In Transit" | "Delivered";
-
+// Update the interface to match API response
 interface Product {
-  id: string;
-  name: string;
-  status: ProductStatus;
-  receiverEmail: string;
-  logisticsName: string;
-  date: string;
+  id: number;
+  product_name: string;
+  status: string;
+  created_at: string;
+  logistics_wallet_address: string;
+  tracking_number: string;
 }
 
-const fetchProducts = (): Promise<Product[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: "1",
-          name: "Wireless Headphones",
-          status: "Delivered",
-          receiverEmail: "john.doe@example.com",
-          logisticsName: "FedEx",
-          date: "2025-05-15",
-        },
-        {
-          id: "2",
-          name: "Smart Watch",
-          status: "In Transit",
-          receiverEmail: "sarah.smith@example.com",
-          logisticsName: "UPS",
-          date: "2025-05-18",
-        },
-        {
-          id: "3",
-          name: "Bluetooth Speaker",
-          status: "Pending",
-          receiverEmail: "mike.johnson@example.com",
-          logisticsName: "DHL",
-          date: "2025-05-20",
-        },
-        {
-          id: "4",
-          name: "Laptop Backpack",
-          status: "In Transit",
-          receiverEmail: "emma.wilson@example.com",
-          logisticsName: "USPS",
-          date: "2025-05-22",
-        },
-        {
-          id: "5",
-          name: "Phone Charger",
-          status: "Delivered",
-          receiverEmail: "david.brown@example.com",
-          logisticsName: "FedEx",
-          date: "2025-05-10",
-        },
-      ]);
-    }, 1000);
-  });
-};
+interface APIResponse {
+  products: Product[];
+}
 
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -79,27 +33,76 @@ const ProductsPage = () => {
     direction: "ascending" | "descending";
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadProducts = async () => {
-      setLoading(true);
-      const data = await fetchProducts();
-      setProducts(data);
-      setLoading(false);
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("access_token");
+        const response = await fetch(API_ROUTES.SELLER.PRODUCTS, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch products");
+        }
+
+        console.log(token);
+
+        const data: APIResponse = await response.json();
+        setProducts(data.products);
+      } catch (err) {
+        setError("Failed to load products");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadProducts();
+    fetchProducts();
   }, []);
 
   // Calculate status counts
   const statusCounts = products.reduce(
     (acc, product) => {
       acc.total++;
-      acc[product.status]++;
+      const status = product.status.toLowerCase();
+      if (status === "pending") acc.Pending++;
+      if (status === "in_transit") acc["In Transit"]++;
+      if (status === "delivered") acc.Delivered++;
       return acc;
     },
     { total: 0, Pending: 0, "In Transit": 0, Delivered: 0 }
   );
+
+  const getStatusBadge = (status: string) => {
+    const statusClasses = {
+      pending: "bg-yellow-100 text-yellow-800",
+      in_transit: "bg-blue-100 text-blue-800",
+      delivered: "bg-green-100 text-green-800",
+    };
+
+    const statusDisplay = {
+      pending: "Pending",
+      in_transit: "In Transit",
+      delivered: "Delivered",
+    };
+
+    const normalizedStatus = status.toLowerCase();
+    return (
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          statusClasses[normalizedStatus as keyof typeof statusClasses]
+        }`}
+      >
+        {statusDisplay[normalizedStatus as keyof typeof statusDisplay]}
+      </span>
+    );
+  };
 
   const filteredProducts = products.filter((product) =>
     Object.values(product).some(
@@ -133,22 +136,6 @@ const ProductsPage = () => {
       return 0;
     });
   }
-
-  const getStatusBadge = (status: ProductStatus) => {
-    const statusClasses = {
-      Pending: "bg-yellow-100 text-yellow-800",
-      "In Transit": "bg-blue-100 text-blue-800",
-      Delivered: "bg-green-100 text-green-800",
-    };
-
-    return (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[status]}`}
-      >
-        {status}
-      </span>
-    );
-  };
 
   return (
     <div className="p-6">
@@ -224,6 +211,8 @@ const ProductsPage = () => {
         <div className="text-center py-8 text-gray-500">
           Loading products...
         </div>
+      ) : error ? (
+        <div className="text-center py-8 text-red-500">{error}</div>
       ) : (
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="overflow-x-auto">
@@ -231,13 +220,12 @@ const ProductsPage = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th
-                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("name")}
+                    onClick={() => requestSort("product_name")}
                   >
                     <div className="flex items-center">
                       Product Name
-                      {sortConfig?.key === "name" && (
+                      {sortConfig?.key === "product_name" && (
                         <span className="ml-1">
                           {sortConfig.direction === "ascending" ? (
                             <BiChevronUp />
@@ -249,7 +237,6 @@ const ProductsPage = () => {
                     </div>
                   </th>
                   <th
-                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                     onClick={() => requestSort("status")}
                   >
@@ -266,50 +253,19 @@ const ProductsPage = () => {
                       )}
                     </div>
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("receiverEmail")}
-                  >
-                    <div className="flex items-center">
-                      Receiver Email
-                      {sortConfig?.key === "receiverEmail" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tracking Number
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Logistics
                   </th>
                   <th
-                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("logisticsName")}
-                  >
-                    <div className="flex items-center">
-                      Logistics Name
-                      {sortConfig?.key === "logisticsName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("date")}
+                    onClick={() => requestSort("created_at")}
                   >
                     <div className="flex items-center">
                       Date
-                      {sortConfig?.key === "date" && (
+                      {sortConfig?.key === "created_at" && (
                         <span className="ml-1">
                           {sortConfig.direction === "ascending" ? (
                             <BiChevronUp />
@@ -323,24 +279,24 @@ const ProductsPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedProducts.map((product) => (
+                {products.map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {product.name}
+                        {product.product_name}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(product.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {product.receiverEmail}
+                      {product.tracking_number}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {product.logisticsName}
+                      {product.logistics_wallet_address}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {product.date}
+                      {new Date(product.created_at).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}
@@ -348,7 +304,7 @@ const ProductsPage = () => {
             </table>
           </div>
 
-          {sortedProducts.length === 0 && (
+          {products.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No products found matching your search criteria.
             </div>

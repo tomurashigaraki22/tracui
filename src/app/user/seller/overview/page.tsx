@@ -54,7 +54,7 @@ const SellerOverviewPage = () => {
         // console.log("Bearer token:", token);
 
         const data = await response.json();
-        console.log(data)
+        console.log(data);
         setData(data);
       } catch (err) {
         setError("Failed to load overview data");
@@ -85,10 +85,10 @@ const SellerOverviewPage = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Overview</h1>
-        <div className="text-right">
+        {/* <div className="text-right">
           <p className="text-sm text-gray-600">Available Balance</p>
           <p className="text-xl font-bold text-[#00FFD1]">${data.balance}</p>
-        </div>
+        </div> */}
       </div>
 
       {/* Metric Cards */}
