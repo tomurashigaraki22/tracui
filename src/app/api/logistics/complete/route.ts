@@ -73,6 +73,24 @@ export async function POST(request: NextRequest) {
 
             const product = products[0];
             
+          
+            
+            const [scanRecord] = await connection.execute<RowDataPacket[]>(
+                'SELECT id FROM scannedrecord WHERE product_id = ? AND live = true',
+                [product_id]
+            );
+
+            if (!scanRecord.length) {
+                return NextResponse.json(
+                    { error: 'No active scan record found' },
+                    { status: 400 }
+                );
+            }
+
+            await connection.execute(
+                'UPDATE scannedrecord SET status = ?, customer_id = ?, live = ? WHERE id = ?',
+                ['delivered', customer_id, false, scanRecord[0].id]
+            );
             if (product.status === 'delivered') {
                 return NextResponse.json({
                     message: 'Already completed',
@@ -85,7 +103,6 @@ export async function POST(request: NextRequest) {
                     product: product
                 });
             }
-            
             const logisticsAmount = product.delivery_fee * 0.95;
 
             await connection.execute(

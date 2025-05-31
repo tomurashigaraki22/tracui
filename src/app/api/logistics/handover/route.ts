@@ -74,18 +74,7 @@ export async function POST(request: NextRequest) {
 
             const product = products[0];
 
-            if (product.status === 'in_transit') {
-                return NextResponse.json({
-                    message: "Already handed over",
-                    logistics: {
-                        name: logisticsUser.name,
-                        email: logisticsUser.email,
-                        balance: logisticsUser.balance,
-                        address: logisticsUser.address
-                    },
-                    product: product
-                });
-            }
+           
 
             const [users2] = await connection.execute<LogisticsUser[]>(
                 'SELECT balance FROM users WHERE id = ?',
@@ -98,6 +87,36 @@ export async function POST(request: NextRequest) {
                     { error: 'Insufficient balance to cover delivery fee' },
                     { status: 400 }
                 );
+            }
+
+            const [scanRecord] = await connection.execute<RowDataPacket[]>(
+                'SELECT id FROM scannedrecord WHERE product_id = ? AND live = true',
+                [product_id]
+            );
+
+            if (!scanRecord.length) {
+                return NextResponse.json(
+                    { error: 'No active scan record found' },
+                    { status: 400 }
+                );
+            }
+
+            await connection.execute(
+                'UPDATE scannedrecord SET status = ?, logistics_id = ? WHERE id = ?',
+                ['in_transit', logistics_id, scanRecord[0].id]
+            );
+
+            if (product.status === 'in_transit') {
+                return NextResponse.json({
+                    message: "Already handed over",
+                    logistics: {
+                        name: logisticsUser.name,
+                        email: logisticsUser.email,
+                        balance: logisticsUser.balance,
+                        address: logisticsUser.address
+                    },
+                    product: product
+                });
             }
 
             await connection.execute(
