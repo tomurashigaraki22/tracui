@@ -220,8 +220,8 @@ export default function Preview() {
                             <h3 className="text-xl font-bold text-gray-800 mb-4">Log History</h3>
                             <div className="max-h-[calc(100vh-24rem)] overflow-y-auto pr-2 space-y-4">
                                 {status.logs && status.logs.length > 0 ? (
-                                    status.logs.map((log) => (
-                                        <div key={log.id} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                                    status.logs.map((log,index) => (
+                                        <div key={log.id} className={`${log.id % 2 ? 'bg-gray-300' : 'bg-gray-100'} p-4 rounded-lg hover:bg-gray-100 transition-colors duration-200`}>
                                             <div className="grid grid-cols-2 gap-3 text-sm">
                                                 <div className="flex justify-between items-center col-span-2 pb-2 mb-2 border-b border-gray-200">
                                                     <span className="font-medium text-gray-900">{new Date(log.created_at).toLocaleTimeString()}</span>
