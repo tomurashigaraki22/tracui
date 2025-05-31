@@ -18,6 +18,11 @@ interface ProductFormData {
   delivery_fee: number;
 }
 
+interface UserData {
+  email: string;
+  // add other user data properties if needed
+}
+
 const AddProductPage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -43,13 +48,21 @@ const AddProductPage = () => {
 
     try {
       const token = localStorage.getItem("access_token");
-      const userData = localStorage.getItem("userData"); // Retrieve user email
-      const userEmail = JSON.parse(userData)?.email; // Extract email from userData
-      if (!userEmail) {
-        throw new Error("User email not found in localStorage");
+      if (!token) {
+        throw new Error("Authentication token not found");
       }
 
-      const blobId = await saveProductBlob(formData); // Pass userEmail
+      const userDataString = localStorage.getItem("userData");
+      if (!userDataString) {
+        throw new Error("User data not found");
+      }
+
+      const userData = JSON.parse(userDataString) as UserData;
+      if (!userData.email) {
+        throw new Error("User email not found");
+      }
+
+      const blobId = await saveProductBlob(formData);
       if (!blobId) {
         throw new Error("Failed to save product blob");
       }
