@@ -31,12 +31,46 @@ interface OverviewResponse {
   };
 }
 
+// Add this interface at the top with other interfaces
+interface UserDetails {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  // Add other user fields as needed
+}
+
 const SellerOverviewPage = () => {
+  // Add new state for user details
+  const [userData, setUserData] = useState<UserDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Create a function to fetch user details
+    const fetchUserDetails = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        const response = await fetch(`${API_ROUTES.USER}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch user details");
+        }
+
+        const userData = await response.json();
+        console.log("User Details:", userData);
+        setUserData(userData);
+      } catch (err) {
+        console.error("Error fetching user details:", err);
+      }
+    };
+
     const fetchOverviewData = async () => {
       try {
         setLoading(true);
@@ -64,7 +98,12 @@ const SellerOverviewPage = () => {
       }
     };
 
-    fetchOverviewData();
+    // Call both fetch functions
+    const fetchData = async () => {
+      await Promise.all([fetchOverviewData(), fetchUserDetails()]);
+    };
+
+    fetchData();
   }, []);
 
   if (loading) {
@@ -126,10 +165,11 @@ const SellerOverviewPage = () => {
               {Number(data.success_rate.current).toFixed(1)}%
             </span>
             <span
-              className={`${data.success_rate.change >= 0
+              className={`${
+                data.success_rate.change >= 0
                   ? "text-green-500"
                   : "text-red-500"
-                } font-semibold mt-3 flex items-center`}
+              } font-semibold mt-3 flex items-center`}
             >
               {data.success_rate.change >= 0 ? (
                 <BiTrendingUp className="h-6 w-6 mr-1" />
