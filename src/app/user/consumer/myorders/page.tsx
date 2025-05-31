@@ -7,10 +7,12 @@ import {
   BiChevronUp,
   BiChevronDown,
 } from "react-icons/bi";
+import { useRouter } from "next/navigation"; // Add this import
 
 interface Order {
   id: number;
   product_name: string;
+  product_code: string;
   status: string;
   logistics_wallet_address: string;
   created_at: string;
@@ -23,6 +25,7 @@ interface APIResponse {
 }
 
 export default function MyOrdersPage() {
+  const router = useRouter(); // Add router
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -123,6 +126,11 @@ export default function MyOrdersPage() {
     );
   };
 
+  // Add handleOrderClick function
+  const handleOrderClick = (tracking_number: string) => {
+    router.push(`/user/product/${tracking_number}`);
+  };
+
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -189,7 +197,11 @@ export default function MyOrdersPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
+                  <tr
+                    key={order.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleOrderClick(order.product_code)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {order.tracking_number}
                     </td>
