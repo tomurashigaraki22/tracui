@@ -1,70 +1,61 @@
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
-import { WalrusClient } from '@mysten/walrus'
-import type { RequestInfo, RequestInit } from 'undici';
-import { Agent, fetch, setGlobalDispatcher } from 'undici';
-import { RawSigner, Ed25519Keypair } from '@mysten/sui';
+import { WalrusClient } from '@mysten/walrus';
+import { getFundedKeypair } from '@/utils/funded-keypair';
+
+const NETWORK = 'testnet';
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
 
 const suiClient = new SuiClient({
-    url: getFullnodeUrl("devnet")
-})
-
-// Retrieve the private key from localStorage
-const privateKeyString = localStorage.getItem("wallet_private_key");
-if (!privateKeyString) {
-  throw new Error("Private key not found in localStorage");
-}
-
-// Convert the private key string to a Uint8Array
-const privateKey = Uint8Array.from(Buffer.from(privateKeyString, "hex")); // Use "base64" if the key is base64 encoded
-
-// Create a keypair from the private key
-const keypair = Ed25519Keypair.fromSecretKey(privateKey);
-
-// Create a compatible Signer instance
-const signer = new RawSigner(keypair, suiClient);
+    url: getFullnodeUrl(NETWORK)
+});
 
 const walrusClient = new WalrusClient({
-    network: "testnet",
+    network: NETWORK,
     suiClient,
+    systemStateId: '0x6c2547cbbc38025cf3adac45f63cb0a8d12ecf777cdc75a4971612bf97fdf6af',
     wasmUrl: 'https://unpkg.com/@mysten/walrus-wasm@latest/web/walrus_wasm_bg.wasm',
     storageNodeClientOptions: {
-		onError: (error) => console.log(error),
-        timeout: 60_000,
-		fetch: (url, init) => {
-			// Some casting may be required because undici types may not exactly match the @node/types types
-			return fetch(url as RequestInfo, {
-				...(init as RequestInit),
-				dispatcher: new Agent({
-					connectTimeout: 60_000,
-				}),
-			}) as unknown as Promise<Response>;
-		},
-	},
-})
+        timeout: 120_000,
+        retries: 5,
+        onError: (error) => console.error('Storage node error:', error),
+    },
+});
 
-/**
- * Save product data as a blob using Walrus.
- * @param data - The product data to save.
- * @returns The blob ID.
- */
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export async function saveProductBlob(data: unknown): Promise<string> {
-  try {
-    const blob = new Uint8Array(Buffer.from(JSON.stringify(data))); // Convert data to Uint8Array
+    let lastError: Error | null = null;
 
-    // Construct WriteBlobOptions
-    const writeBlobOptions = {
-      blob,
-      deletable: true, // Example value, adjust as needed
-      epochs: 1, // Example value, adjust as needed
-      signer, // Use the compatible Signer instance
-    };
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+            const jsonString = JSON.stringify(data);
+            const blob = new TextEncoder().encode(jsonString);
+            const keypair = await getFundedKeypair();
 
-    const response = await walrusClient.writeBlob(writeBlobOptions); // Save blob using Walrus
+            console.log(`Attempt ${attempt + 1}/${MAX_RETRIES} to save blob...`);
 
-    // Extract and return the blob ID
-    return response.blobId;
-  } catch (error) {
-    console.error("Error saving product blob:", error);
-    throw error;
-  }
+            // Write blob directly - it handles registration internally
+            const { blobId } = await walrusClient.writeBlob({
+                blob,
+                deletable: false,
+                epochs: 5, // Increased for better persistence
+                signer: keypair,
+            });
+
+            console.log('Blob saved successfully with ID:', blobId);
+            return blobId;
+        } catch (error) {
+            lastError = error as Error;
+            console.error(`Attempt ${attempt + 1} failed and i dont knnow why:`, error);
+
+            if (attempt < MAX_RETRIES - 1) {
+                const delay = RETRY_DELAY * Math.pow(2, attempt);
+                console.log(`Retrying in ${delay}ms...`);
+                await wait(delay);
+            }
+        }
+    }
+
+    throw new Error(`Failed to save blob after ${MAX_RETRIES} attempts: ${lastError?.message}`);
 }

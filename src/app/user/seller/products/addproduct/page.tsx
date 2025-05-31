@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { API_ROUTES } from "@/utils/config";
 import { useRouter } from "next/navigation";
+import { saveProductBlob } from "../utils/walrustools";
 
 interface ProductFormData {
   product_name: string;
@@ -14,6 +15,7 @@ interface ProductFormData {
   estimated_delivery_date: string;
   product_weight: number;
   product_value: number;
+  delivery_fee: number;
 }
 
 const AddProductPage = () => {
@@ -31,6 +33,7 @@ const AddProductPage = () => {
     estimated_delivery_date: "",
     product_weight: 0,
     product_value: 0,
+    delivery_fee: 300,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,14 +43,29 @@ const AddProductPage = () => {
 
     try {
       const token = localStorage.getItem("access_token");
+      const userData = localStorage.getItem("userData"); // Retrieve user email
+      const userEmail = JSON.parse(userData)?.email; // Extract email from userData
+      if (!userEmail) {
+        throw new Error("User email not found in localStorage");
+      }
+
+      const blobId = await saveProductBlob(formData); // Pass userEmail
+      if (!blobId) {
+        throw new Error("Failed to save product blob");
+      }
+
       const response = await fetch(API_ROUTES.SELLER.PRODUCTS, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          blob_id: blobId
+        }),
       });
+
 
       if (!response.ok) {
         throw new Error("Failed to create product");

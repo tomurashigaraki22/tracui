@@ -230,7 +230,7 @@ const Sidebar = ({ role }: SidebarProps) => {
       {/* Bottom section with logout */}
       <div className="p-4 border-t border-neutral-200">
         <Link
-          href="/login"
+          href="/auth/login"
           className="flex items-center px-3 py-2 text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"
         >
           <BiLogOut size={20} className="mr-3" />
