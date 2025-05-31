@@ -17,11 +17,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       | "consumer"
       | null;
 
-    // if (!savedRole) {
-    //   // Redirect to role selection if no role is set
-    //   router.push("/roleselection");
-    //   return;
-    // }
+    if (!savedRole) {
+      // Redirect to role selection if no role is set
+      router.push("/roleselection");
+      return;
+    }
 
     setRole(savedRole);
 
@@ -29,22 +29,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const path = window.location.pathname.split("/");
     const routeRole = path[2]; // /user/[role]/...
 
-    // if (routeRole && routeRole !== savedRole) {
-    //   router.push(`/user/${savedRole}/dashboard`);
-    // }
+    if (routeRole && routeRole !== savedRole) {
+      router.push(`/user/${savedRole}/overview`);
+    }
   }, [router]);
 
-  //   if (!role) {
-  //     return (
-  //       <div className="flex items-center justify-center h-screen">
-  //         <p>Loading dashboard...</p>
-  //       </div>
-  //     );
-  //   }
+  if (!role) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Loading dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen">
-      <Sidebar role="consumer" />
+      <Sidebar role={role} />
       <main className="flex-1 overflow-y-auto bg-gray-50 p-6">{children}</main>
     </div>
   );

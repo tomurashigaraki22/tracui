@@ -10,7 +10,9 @@ import {
   BiPurchaseTag,
   BiTrendingUp,
   BiTrendingDown,
+  BiXCircle,
 } from "react-icons/bi";
+import { BsTruckFlatbed } from "react-icons/bs";
 
 interface ConsumerOverviewResponse {
   metrics: {
@@ -120,24 +122,24 @@ const ConsumerOverviewPage = () => {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Total Orders"
+          title="Total Deliveries"
           value={data.metrics.total_products}
-          icon={<BiPurchaseTag className="h-6 w-6" />}
+          icon={<BiPackage className="h-6 w-6" />}
         />
         <MetricCard
           title="In Transit"
           value={data.metrics.in_transit}
-          icon={<BiPackage className="h-6 w-6" />}
+          icon={<BsTruckFlatbed className="h-6 w-6" />}
         />
         <MetricCard
-          title="Delivered"
+          title="Successful Deliveries"
           value={data.metrics.delivered}
           icon={<BiCheckCircle className="h-6 w-6" />}
         />
         <MetricCard
-          title="Pending"
+          title="Failed Deliveries"
           value={data.metrics.failed}
-          icon={<BiTime className="h-6 w-6" />}
+          icon={<BiXCircle className="h-6 w-6" />}
         />
       </div>
 
