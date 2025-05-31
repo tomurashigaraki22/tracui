@@ -1,11 +1,11 @@
-export const API_BASE_URL = "https://tracui.pxxl.tech"; // Replace with your actual API base URL
+export const API_BASE_URL = "https://tracui.pxxl.tech";
 
 export const API_ROUTES = {
   // Consumer routes
   CONSUMER: {
     OVERVIEW: `/api/dashboard/stats`,
-    ORDERS: `/api/consumer/orders`,
-    ORDER_HISTORY: `/api/consumer/order-history`,
+    ORDERS: `/api/products`,
+    ORDER_HISTORY: `/api/products`,
   },
   // Seller routes
   SELLER: {
@@ -15,7 +15,13 @@ export const API_ROUTES = {
   // Logistics routes
   LOGISTICS: {
     OVERVIEW: `/api/dashboard/stats`,
-    SHIPMENTS: `/api/logistics/shipments`,
-    HISTORY: `/api/logistics/history`,
+    SHIPMENTS: `/api/products`,
+    HISTORY: `/api/products`,
   },
+
+  // Product route
+  PRODUCT: `/api/products`, // Changed this to be a simple string
+
+  // User route
+  USER: `/api/user`,
 };

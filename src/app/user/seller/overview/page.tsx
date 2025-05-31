@@ -31,12 +31,46 @@ interface OverviewResponse {
   };
 }
 
+// Add this interface at the top with other interfaces
+interface UserDetails {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  // Add other user fields as needed
+}
+
 const SellerOverviewPage = () => {
+  // Add new state for user details
+  const [userData, setUserData] = useState<UserDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<OverviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Create a function to fetch user details
+    const fetchUserDetails = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        const response = await fetch(`${API_ROUTES.USER}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch user details");
+        }
+
+        const userData = await response.json();
+        console.log("User Details:", userData);
+        setUserData(userData);
+      } catch (err) {
+        console.error("Error fetching user details:", err);
+      }
+    };
+
     const fetchOverviewData = async () => {
       try {
         setLoading(true);
@@ -51,7 +85,7 @@ const SellerOverviewPage = () => {
         if (!response.ok) {
           throw new Error("Failed to fetch data");
         }
-        console.log("Bearer token:", token);
+        // console.log("Bearer token:", token);
 
         const data = await response.json();
         console.log(data);
@@ -64,7 +98,12 @@ const SellerOverviewPage = () => {
       }
     };
 
-    fetchOverviewData();
+    // Call both fetch functions
+    const fetchData = async () => {
+      await Promise.all([fetchOverviewData(), fetchUserDetails()]);
+    };
+
+    fetchData();
   }, []);
 
   if (loading) {
@@ -85,10 +124,10 @@ const SellerOverviewPage = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Overview</h1>
-        <div className="text-right">
+        {/* <div className="text-right">
           <p className="text-sm text-gray-600">Available Balance</p>
           <p className="text-xl font-bold text-[#00FFD1]">${data.balance}</p>
-        </div>
+        </div> */}
       </div>
 
       {/* Metric Cards */}

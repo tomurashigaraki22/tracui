@@ -1,74 +1,71 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { API_ROUTES } from "@/utils/config";
 import {
   BiSearch,
   BiPackage,
   BiChevronUp,
   BiChevronDown,
 } from "react-icons/bi";
-
-type OrderStatus = "Pending" | "In Transit" | "Delivered";
+import { useRouter } from "next/navigation"; // Add this import
 
 interface Order {
-  id: string;
-  productName: string;
-  status: OrderStatus;
-  logisticsName: string;
-  date: string;
-  amount: string;
+  id: number;
+  product_name: string;
+  product_code: string;
+  status: string;
+  logistics_wallet_address: string;
+  created_at: string;
+  product_value: string;
+  tracking_number: string;
 }
 
-const fetchOrders = (): Promise<Order[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: "1",
-          productName: "iPhone 15 Pro",
-          status: "In Transit",
-          logisticsName: "FedEx",
-          date: "2025-05-30",
-          amount: "$999",
-        },
-        {
-          id: "2",
-          productName: "MacBook Air",
-          status: "Delivered",
-          logisticsName: "DHL",
-          date: "2025-05-29",
-          amount: "$1299",
-        },
-        {
-          id: "3",
-          productName: "AirPods Pro",
-          status: "Pending",
-          logisticsName: "UPS",
-          date: "2025-05-28",
-          amount: "$249",
-        },
-      ]);
-    }, 1000);
-  });
-};
+interface APIResponse {
+  products: Order[];
+}
 
 export default function MyOrdersPage() {
+  const router = useRouter(); // Add router
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Order;
     direction: "ascending" | "descending";
   } | null>(null);
 
   useEffect(() => {
-    const loadOrders = async () => {
-      setLoading(true);
-      const data = await fetchOrders();
-      setOrders(data);
-      setLoading(false);
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("access_token");
+        const response = await fetch(API_ROUTES.CONSUMER.ORDERS, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch orders");
+        }
+
+        const data: APIResponse = await response.json();
+        // Filter orders to only include pending and in_transit status
+        const activeOrders = data.products.filter(
+          (order) => order.status === "pending" || order.status === "in_transit"
+        );
+        setOrders(activeOrders);
+      } catch (err) {
+        setError("Failed to load orders");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadOrders();
+    fetchOrders();
   }, []);
 
   const filteredOrders = orders.filter((order) =>
@@ -104,20 +101,34 @@ export default function MyOrdersPage() {
     });
   }
 
-  const getStatusBadge = (status: OrderStatus) => {
+  const getStatusBadge = (status: string) => {
     const statusClasses = {
-      Pending: "bg-yellow-100 text-yellow-800",
-      "In Transit": "bg-blue-100 text-blue-800",
-      Delivered: "bg-green-100 text-green-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      in_transit: "bg-blue-100 text-blue-800",
+      delivered: "bg-green-100 text-green-800",
     };
 
+    const statusDisplay = {
+      pending: "Pending",
+      in_transit: "In Transit",
+      delivered: "Delivered",
+    };
+
+    const normalizedStatus = status.toLowerCase();
     return (
       <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[status]}`}
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          statusClasses[normalizedStatus as keyof typeof statusClasses]
+        }`}
       >
-        {status}
+        {statusDisplay[normalizedStatus as keyof typeof statusDisplay]}
       </span>
     );
+  };
+
+  // Add handleOrderClick function
+  const handleOrderClick = (tracking_number: string) => {
+    router.push(`/user/product/${tracking_number}`);
   };
 
   return (
@@ -156,118 +167,60 @@ export default function MyOrdersPage() {
 
       {loading ? (
         <div className="text-center py-8 text-gray-500">Loading orders...</div>
+      ) : error ? (
+        <div className="text-center py-8 text-red-500">{error}</div>
       ) : (
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("productName")}
-                  >
-                    <div className="flex items-center">
-                      Product Name
-                      {sortConfig?.key === "productName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tracking Number
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("status")}
-                  >
-                    <div className="flex items-center">
-                      Status
-                      {sortConfig?.key === "status" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product Name
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("logisticsName")}
-                  >
-                    <div className="flex items-center">
-                      Logistics
-                      {sortConfig?.key === "logisticsName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("amount")}
-                  >
-                    <div className="flex items-center">
-                      Amount
-                      {sortConfig?.key === "amount" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Logistics
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("date")}
-                  >
-                    <div className="flex items-center">
-                      Date
-                      {sortConfig?.key === "date" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
+                {orders.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleOrderClick(order.product_code)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.tracking_number}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {order.productName}
+                        {order.product_name}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(order.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.logisticsName}
+                      {order.logistics_wallet_address}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.amount}
+                      ${order.product_value}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.date}
+                      {new Date(order.created_at).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}
@@ -275,7 +228,7 @@ export default function MyOrdersPage() {
             </table>
           </div>
 
-          {sortedOrders.length === 0 && (
+          {orders.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No orders found matching your search criteria.
             </div>

@@ -11,7 +11,7 @@ import {
 } from "react-icons/bi";
 import { BsTruck } from "react-icons/bs";
 import { CiSettings } from "react-icons/ci";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { CgLock } from "react-icons/cg";
 import { FaUserSecret } from "react-icons/fa6";
 import Link from "next/link";
@@ -30,6 +30,7 @@ interface NavItem {
 }
 
 const Sidebar = ({ role }: SidebarProps) => {
+  const router = useRouter();
   const pathname = usePathname();
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
@@ -138,6 +139,11 @@ const Sidebar = ({ role }: SidebarProps) => {
     return item.children?.some((child) => isActive(child.path));
   };
 
+  const logout = () => {
+    localStorage.clear();
+    router.replace("/");
+  };
+
   return (
     <aside className="bg-black h-screen w-64 border-r border-neutral-200 flex flex-col">
       {/* Logo */}
@@ -229,13 +235,18 @@ const Sidebar = ({ role }: SidebarProps) => {
 
       {/* Bottom section with logout */}
       <div className="p-4 border-t border-neutral-200">
+<<<<<<< HEAD
         <Link
           href="/auth/login"
+=======
+        <button
+          onClick={logout}
+>>>>>>> 5d7b84499f331e08256132f0e781c44e8c49f233
           className="flex items-center px-3 py-2 text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"
         >
           <BiLogOut size={20} className="mr-3" />
           <span>Logout</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );

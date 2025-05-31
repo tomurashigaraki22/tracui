@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { API_ROUTES } from "@/utils/config";
 import {
   BiChevronDown,
@@ -14,6 +15,7 @@ import { BsTruck } from "react-icons/bs";
 // Update the interface to match API response
 interface Product {
   id: number;
+  product_code: string;
   product_name: string;
   status: string;
   created_at: string;
@@ -26,6 +28,7 @@ interface APIResponse {
 }
 
 const ProductsPage = () => {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
@@ -136,6 +139,10 @@ const ProductsPage = () => {
       return 0;
     });
   }
+
+  const handleProductClick = (product_code: string) => {
+    router.push(`/user/product/${product_code}`);
+  };
 
   return (
     <div className="p-6">
@@ -280,7 +287,11 @@ const ProductsPage = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {products.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50">
+                  <tr
+                    key={product.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleProductClick(product.product_code)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {product.product_name}
