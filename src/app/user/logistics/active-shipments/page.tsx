@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { API_ROUTES } from "@/utils/config";
 import {
   BiSearch,
   BiPackage,
@@ -7,46 +8,21 @@ import {
   BiChevronDown,
 } from "react-icons/bi";
 
-type ShipmentStatus = "In Possession" | "Delivered";
-
 interface Shipment {
-  id: string;
-  productName: string;
-  status: ShipmentStatus;
-  senderName: string;
-  receiverName: string;
-  date: string;
-  location: string;
+  id: number;
+  product_code: string;
+  product_name: string;
+  sender_location: string;
+  receiver_location: string;
+  logistics_location: string;
+  status: string;
+  created_at: string;
+  tracking_number: string;
 }
 
-// Simulated API call
-const fetchShipments = (): Promise<Shipment[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: "1",
-          productName: "iPhone 15 Pro",
-          status: "In Possession",
-          senderName: "Apple Store",
-          receiverName: "John Smith",
-          date: "2025-05-30",
-          location: "New York",
-        },
-        {
-          id: "2",
-          productName: "MacBook Air",
-          status: "Delivered",
-          senderName: "Apple Store",
-          receiverName: "Sarah Johnson",
-          date: "2025-05-29",
-          location: "Los Angeles",
-        },
-        // Add more dummy data as needed
-      ]);
-    }, 1000);
-  });
-};
+interface APIResponse {
+  products: Shipment[];
+}
 
 export default function ShipmentsPage() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -56,16 +32,39 @@ export default function ShipmentsPage() {
     key: keyof Shipment;
     direction: "ascending" | "descending";
   } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadShipments = async () => {
-      setLoading(true);
-      const data = await fetchShipments();
-      setShipments(data);
-      setLoading(false);
+    const fetchShipments = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("access_token");
+        const response = await fetch(API_ROUTES.LOGISTICS.SHIPMENTS, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch shipments");
+        }
+
+        const data: APIResponse = await response.json();
+        // Filter only "in_transit" shipments
+        const inTransitShipments = data.products.filter(
+          (shipment) => shipment.status.toLowerCase() === "in_transit"
+        );
+        setShipments(inTransitShipments);
+      } catch (err) {
+        setError("Failed to load shipments");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadShipments();
+    fetchShipments();
   }, []);
 
   const filteredShipments = shipments.filter((shipment) =>
@@ -101,40 +100,17 @@ export default function ShipmentsPage() {
     });
   }
 
-  const getStatusBadge = (status: ShipmentStatus) => {
-    const statusClasses = {
-      "In Possession": "bg-blue-100 text-blue-800",
-      Delivered: "bg-green-100 text-green-800",
-    };
-
-    return (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[status]}`}
-      >
-        {status}
-      </span>
-    );
-  };
-
-  // Add status counts calculation
-  const statusCounts = shipments.reduce(
-    (acc, shipment) => {
-      if (shipment.status === "Delivered") {
-        acc.delivered++;
-      } else if (shipment.status === "In Possession") {
-        acc.inPossession++;
-      }
-      return acc;
-    },
-    { delivered: 0, inPossession: 0 }
-  );
-
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold flex items-center">
-          <BiPackage className="mr-2" /> Active Shipments
-        </h1>
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-bold flex items-center">
+            <BiPackage className="mr-2" /> Active Shipments
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Currently tracking {shipments.length} shipments in transit
+          </p>
+        </div>
 
         <div className="relative w-full md:w-64">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -150,41 +126,12 @@ export default function ShipmentsPage() {
         </div>
       </div>
 
-      {/* Add Status Count Boxes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">In Possession</p>
-              <p className="text-2xl font-bold text-[#00FFD1]">
-                {statusCounts.inPossession}
-              </p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <BiPackage className="w-6 h-6 text-blue-800" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Delivered</p>
-              <p className="text-2xl font-bold text-[#00FFD1]">
-                {statusCounts.delivered}
-              </p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <BiPackage className="w-6 h-6 text-green-800" />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {loading ? (
         <div className="text-center py-8 text-gray-500">
           Loading shipments...
         </div>
+      ) : error ? (
+        <div className="text-center py-8 text-red-500">{error}</div>
       ) : (
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="overflow-x-auto">
@@ -193,11 +140,11 @@ export default function ShipmentsPage() {
                 <tr>
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("productName")}
+                    onClick={() => requestSort("product_name")}
                   >
                     <div className="flex items-center">
                       Product Name
-                      {sortConfig?.key === "productName" && (
+                      {sortConfig?.key === "product_name" && (
                         <span className="ml-1">
                           {sortConfig.direction === "ascending" ? (
                             <BiChevronUp />
@@ -208,81 +155,25 @@ export default function ShipmentsPage() {
                       )}
                     </div>
                   </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("status")}
-                  >
-                    <div className="flex items-center">
-                      Status
-                      {sortConfig?.key === "status" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tracking Number
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Sender Location
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Receiver Location
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Current Location
                   </th>
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("senderName")}
-                  >
-                    <div className="flex items-center">
-                      Sender
-                      {sortConfig?.key === "senderName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("receiverName")}
-                  >
-                    <div className="flex items-center">
-                      Receiver
-                      {sortConfig?.key === "receiverName" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("location")}
-                  >
-                    <div className="flex items-center">
-                      Location
-                      {sortConfig?.key === "location" && (
-                        <span className="ml-1">
-                          {sortConfig.direction === "ascending" ? (
-                            <BiChevronUp />
-                          ) : (
-                            <BiChevronDown />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort("date")}
+                    onClick={() => requestSort("created_at")}
                   >
                     <div className="flex items-center">
                       Date
-                      {sortConfig?.key === "date" && (
+                      {sortConfig?.key === "created_at" && (
                         <span className="ml-1">
                           {sortConfig.direction === "ascending" ? (
                             <BiChevronUp />
@@ -300,23 +191,23 @@ export default function ShipmentsPage() {
                   <tr key={shipment.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {shipment.productName}
+                        {shipment.product_name}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(shipment.status)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {shipment.tracking_number}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shipment.senderName}
+                      {shipment.sender_location}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shipment.receiverName}
+                      {shipment.receiver_location}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shipment.location}
+                      {shipment.logistics_location}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shipment.date}
+                      {new Date(shipment.created_at).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}

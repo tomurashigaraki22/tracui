@@ -1,12 +1,12 @@
-import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
-import { WalrusClient } from '@mysten/walrus'
-import type { RequestInfo, RequestInit } from 'undici';
-import { Agent, fetch, setGlobalDispatcher } from 'undici';
-import { RawSigner, Ed25519Keypair } from '@mysten/sui';
+import { getFullnodeUrl, SuiClient } from "@mysten/sui/client";
+import { WalrusClient } from "@mysten/walrus";
+import type { RequestInfo, RequestInit } from "undici";
+import { Agent, fetch, setGlobalDispatcher } from "undici";
+import { RawSigner, Ed25519Keypair } from "@mysten/sui";
 
 const suiClient = new SuiClient({
-    url: getFullnodeUrl("devnet")
-})
+  url: getFullnodeUrl("devnet"),
+});
 
 // Retrieve the private key from localStorage
 const privateKeyString = localStorage.getItem("wallet_private_key");
@@ -24,23 +24,24 @@ const keypair = Ed25519Keypair.fromSecretKey(privateKey);
 const signer = new RawSigner(keypair, suiClient);
 
 const walrusClient = new WalrusClient({
-    network: "testnet",
-    suiClient,
-    wasmUrl: 'https://unpkg.com/@mysten/walrus-wasm@latest/web/walrus_wasm_bg.wasm',
-    storageNodeClientOptions: {
-		onError: (error) => console.log(error),
-        timeout: 60_000,
-		fetch: (url, init) => {
-			// Some casting may be required because undici types may not exactly match the @node/types types
-			return fetch(url as RequestInfo, {
-				...(init as RequestInit),
-				dispatcher: new Agent({
-					connectTimeout: 60_000,
-				}),
-			}) as unknown as Promise<Response>;
-		},
-	},
-})
+  network: "testnet",
+  suiClient,
+  wasmUrl:
+    "https://unpkg.com/@mysten/walrus-wasm@latest/web/walrus_wasm_bg.wasm",
+  storageNodeClientOptions: {
+    onError: (error) => console.log(error),
+    timeout: 60_000,
+    fetch: (url, init) => {
+      // Some casting may be required because undici types may not exactly match the @node/types types
+      return fetch(url as RequestInfo, {
+        ...(init as RequestInit),
+        dispatcher: new Agent({
+          connectTimeout: 60_000,
+        }),
+      }) as unknown as Promise<Response>;
+    },
+  },
+});
 
 /**
  * Save product data as a blob using Walrus.

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import MetricCard from "@/components/MetricCard";
 import SuccessRateChart from "@/components/SuccessRateChart";
+import { API_ROUTES } from "@/utils/config";
 import {
   BiPackage,
   BiCheckCircle,
@@ -10,63 +11,92 @@ import {
   BiTrendingUp,
   BiTrendingDown,
 } from "react-icons/bi";
-import { API_ROUTES } from "@/utils/config";
 
 interface ConsumerOverviewResponse {
   metrics: {
-    totalOrders: number;
-    ordersInTransit: number;
-    deliveredOrders: number;
-    pendingOrders: number;
+    total_products: number;
+    in_transit: number;
+    delivered: number;
+    failed: number;
   };
   chart_data: {
     months: string[];
     deliveries: number[];
   };
-  delivery_rate: {
+  success_rate: {
     current: string;
     change: number;
   };
-  recent_orders: Array<{
-    id: string;
-    productName: string;
-    status: string;
-    date: string;
-  }>;
+}
+
+interface Product {
+  id: number;
+  product_name: string;
+  status: string;
+  created_at: string;
+}
+
+interface ProductsResponse {
+  products: Product[];
 }
 
 const ConsumerOverviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ConsumerOverviewResponse | null>(null);
+  const [recentOrders, setRecentOrders] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchOverviewData = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("user_token"); // Get token from localStorage
-        const response = await fetch("/api/dashboard/stats", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+        const token = localStorage.getItem("access_token");
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        };
+
+        // Fetch overview data
+        const overviewResponse = await fetch(API_ROUTES.CONSUMER.OVERVIEW, {
+          headers,
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch data");
+        if (!overviewResponse.ok) {
+          throw new Error("Failed to fetch overview data");
         }
 
-        const data = await response.json();
-        setData(data);
+        const overviewData = await overviewResponse.json();
+
+        const productsResponse = await fetch(API_ROUTES.CONSUMER.ORDERS, {
+          headers,
+        });
+
+        if (!productsResponse.ok) {
+          throw new Error("Failed to fetch orders data");
+        }
+
+        const productsData: ProductsResponse = await productsResponse.json();
+
+        const sortedProducts = productsData.products
+          .sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+          )
+          .slice(0, 5);
+
+        setData(overviewData);
+        console.log(overviewData);
+        setRecentOrders(sortedProducts);
       } catch (err) {
-        setError("Failed to load overview data");
+        setError("Failed to load data");
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOverviewData();
+    fetchData();
   }, []);
 
   if (loading) {
@@ -91,22 +121,22 @@ const ConsumerOverviewPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Total Orders"
-          value={data.metrics.totalOrders}
+          value={data.metrics.total_products}
           icon={<BiPurchaseTag className="h-6 w-6" />}
         />
         <MetricCard
           title="In Transit"
-          value={data.metrics.ordersInTransit}
+          value={data.metrics.in_transit}
           icon={<BiPackage className="h-6 w-6" />}
         />
         <MetricCard
           title="Delivered"
-          value={data.metrics.deliveredOrders}
+          value={data.metrics.delivered}
           icon={<BiCheckCircle className="h-6 w-6" />}
         />
         <MetricCard
           title="Pending"
-          value={data.metrics.pendingOrders}
+          value={data.metrics.failed}
           icon={<BiTime className="h-6 w-6" />}
         />
       </div>
@@ -119,23 +149,23 @@ const ConsumerOverviewPage = () => {
           </h2>
           <div className="flex flex-col items-center">
             <span className="text-5xl font-extrabold text-[#00FFD1]">
-              {Number(data.delivery_rate.current).toFixed(1)}%
+              {Number(data.success_rate.current).toFixed(1)}%
             </span>
             <span
               className={`${
-                data.delivery_rate.change >= 0
+                data.success_rate.change >= 0
                   ? "text-green-500"
                   : "text-red-500"
               } font-semibold mt-3 flex items-center`}
             >
-              {data.delivery_rate.change >= 0 ? (
+              {data.success_rate.change >= 0 ? (
                 <BiTrendingUp className="h-6 w-6 mr-1" />
               ) : (
                 <BiTrendingDown className="h-6 w-6 mr-1" />
               )}
               <span className="text-sm md:text-base">
-                {data.delivery_rate.change >= 0 ? "+" : ""}
-                {data.delivery_rate.change.toFixed(1)}% from last month
+                {data.success_rate.change >= 0 ? "+" : ""}
+                {data.success_rate.change.toFixed(1)}% from last month
               </span>
             </span>
           </div>
@@ -172,18 +202,26 @@ const ConsumerOverviewPage = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {data.recent_orders.map((order) => (
+              {recentOrders.map((order) => (
                 <tr key={order.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {order.productName}
+                    {order.product_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        order.status === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : order.status === "in_transit"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
                       {order.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.date}
+                    {new Date(order.created_at).toLocaleDateString()}
                   </td>
                 </tr>
               ))}
