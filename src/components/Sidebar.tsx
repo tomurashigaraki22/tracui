@@ -235,13 +235,8 @@ const Sidebar = ({ role }: SidebarProps) => {
 
       {/* Bottom section with logout */}
       <div className="p-4 border-t border-neutral-200">
-<<<<<<< HEAD
-        <Link
-          href="/auth/login"
-=======
         <button
           onClick={logout}
->>>>>>> 5d7b84499f331e08256132f0e781c44e8c49f233
           className="flex items-center px-3 py-2 text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"
         >
           <BiLogOut size={20} className="mr-3" />
