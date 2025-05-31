@@ -1,6 +1,6 @@
 // src/utils/wallet.ts
 import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
-import { fromB64 } from '@mysten/sui.js/utils';
+import { fromB64, toB64 } from '@mysten/sui.js/utils';
 import { SuiClient } from '@mysten/sui.js/client';
 import CryptoJS from 'crypto-js'; // We'll need to install this
 
@@ -18,38 +18,38 @@ export interface WalletInfo {
 
 export const createNewWallet = async (userEmail: string): Promise<WalletInfo> => {
   try {
-    // Generate a new Ed25519 keypair
     const keypair = new Ed25519Keypair();
-    
-    // Get the public key and address
     const publicKey = keypair.getPublicKey();
     const address = publicKey.toSuiAddress();
     
-    // Export the private key
+    // Store the keypair export
     const exportedKeypair = keypair.export();
-    const privateKey = fromB64(exportedKeypair.privateKey);
-    const privateKeyHex = Buffer.from(privateKey).toString('hex');
-
-    // Create an encryption key using user's email and a salt
-    // In production, you might want to use a more secure method
-    const encryptionKey = `${userEmail}-${process.env.NEXT_PUBLIC_ENCRYPTION_SALT}`;
-    
-    // Encrypt the private key
-    const encryptedPrivateKey = CryptoJS.AES.encrypt(
-      privateKeyHex,
-      encryptionKey
-    ).toString();
+    localStorage.setItem('keypairExport', JSON.stringify(exportedKeypair));
     
     return {
       address,
-      privateKey: privateKeyHex, // Keep this for immediate use
+      privateKey: exportedKeypair.privateKey,
       publicKey: publicKey.toBase64(),
-      encryptedPrivateKey, // This will be sent to backend
+      encryptedPrivateKey: CryptoJS.AES.encrypt(
+        exportedKeypair.privateKey,
+        `${userEmail}-${process.env.NEXT_PUBLIC_ENCRYPTION_SALT}`
+      ).toString(),
     };
   } catch (error) {
     console.error('Error creating wallet:', error);
     throw new Error('Failed to create wallet');
   }
+};
+
+// Update the keypair reconstruction utility
+export const getStoredKeypair = (): Ed25519Keypair => {
+  const keypairExport = localStorage.getItem('keypairExport');
+  if (!keypairExport) {
+    throw new Error('No keypair found in storage');
+  }
+  
+  const parsed = JSON.parse(keypairExport);
+  return Ed25519Keypair.fromSecretKey(fromB64(parsed.privateKey));
 };
 
 // Optional: Function to check wallet balance

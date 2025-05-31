@@ -140,6 +140,7 @@ const Sidebar = ({ role }: SidebarProps) => {
   };
 
   const logout = () => {
+    console.log("WDWD")
     localStorage.clear();
     router.replace("/");
   };
