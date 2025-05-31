@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import pool from '@/lib/mysql';
-import type { RowDataPacket } from 'mysql2';
+import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 interface User extends RowDataPacket {
     id: number;
@@ -12,6 +12,8 @@ interface Product extends RowDataPacket {
     id: number;
     product_code: string;
     is_scanned: number;
+    logistics_id: number;
+    user_id: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
             }
 
             const [products] = await connection.execute<Product[]>(
-                'SELECT id, product_code FROM products WHERE user_id = ? AND is_scanned = 0 ORDER BY created_at DESC LIMIT 1',
+                'SELECT id, product_code, logistics_id, user_id FROM products WHERE user_id = ? AND is_scanned = 0 ORDER BY created_at DESC LIMIT 1',
                 [id]
             );
 
@@ -51,6 +53,11 @@ export async function POST(request: NextRequest) {
                     r: 'no_unscanned_products'
                 });
             }
+
+            await connection.execute(
+                'UPDATE scannedrecord SET product_id = ?, logistics_id = ?, customer_id = ?, status = ?, live = ? WHERE id = 1',
+                [products[0].id, products[0].logistics_id, products[0].user_id, 'scanning', true]
+            );
 
             return NextResponse.json({
                 s: 1,

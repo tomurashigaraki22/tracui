@@ -26,9 +26,9 @@ interface Product extends RowDataPacket {
 
 export async function POST(request: NextRequest) {
     try {
-        const { logistics_id, product_id } = await request.json();
+        const { customer_id, product_id } = await request.json();
 
-        if (!logistics_id || !product_id) {
+        if (!customer_id || !product_id) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
                 { status: 400 }
@@ -40,21 +40,21 @@ export async function POST(request: NextRequest) {
         try {
             const [users] = await connection.execute<LogisticsUser[]>(
                 'SELECT id, name, email, balance, address, account_type FROM users WHERE id = ?',
-                [logistics_id]
+                [customer_id]
             );
 
             if (!users.length) {
                 return NextResponse.json(
-                    { error: 'Logistics user not found' },
+                    { error: 'Customer not found' },
                     { status: 404 }
                 );
             }
 
-            const logisticsUser = users[0];
+            const customer = users[0];
 
-            if (logisticsUser.account_type !== 'logistics') {
+            if (customer.account_type !== 'customer') {
                 return NextResponse.json(
-                    { error: 'User is not a logistics provider' },
+                    { error: 'User is not a customer' },
                     { status: 403 }
                 );
             }
@@ -73,29 +73,46 @@ export async function POST(request: NextRequest) {
 
             const product = products[0];
             
+          
+            
+            const [scanRecord] = await connection.execute<RowDataPacket[]>(
+                'SELECT id FROM scannedrecord WHERE product_id = ? AND live = true',
+                [product_id]
+            );
+
+            if (!scanRecord.length) {
+                return NextResponse.json(
+                    { error: 'No active scan record found' },
+                    { status: 400 }
+                );
+            }
+
+            await connection.execute(
+                'UPDATE scannedrecord SET status = ?, customer_id = ?, live = ? WHERE id = ?',
+                ['delivered', customer_id, false, scanRecord[0].id]
+            );
             if (product.status === 'delivered') {
                 return NextResponse.json({
                     message: 'Already completed',
-                    logistics: {
-                        name: logisticsUser.name,
-                        email: logisticsUser.email,
-                        balance: logisticsUser.balance,
-                        address: logisticsUser.address
+                    customer: {
+                        name: customer.name,
+                        email: customer.email,
+                        balance: customer.balance,
+                        address: customer.address
                     },
                     product: product
                 });
             }
-            
             const logisticsAmount = product.delivery_fee * 0.95;
 
             await connection.execute(
                 'UPDATE users SET balance = balance + ? WHERE id = ?',
-                [logisticsAmount, logistics_id]
+                [logisticsAmount, customer_id]
             );
 
             await connection.execute(
                 'INSERT INTO transactions (user_id, amount, type, description) VALUES (?, ?, ?, ?)',
-                [logistics_id, logisticsAmount, 'credit', `Payment received for delivery of product ${product.product_code}`]
+                [customer_id, logisticsAmount, 'credit', `Payment received for delivery of product ${product.product_code}`]
             );
 
             await connection.execute(
@@ -112,11 +129,11 @@ export async function POST(request: NextRequest) {
 
             return NextResponse.json({
                 message: 'Logistics Completed',
-                logistics: {
-                    name: logisticsUser.name,
-                    email: logisticsUser.email,
-                    balance: logisticsUser.balance,
-                    address: logisticsUser.address
+                customer: {
+                    name: customer.name,
+                    email: customer.email,
+                    balance: customer.balance,
+                    address: customer.address
                 },
                 product: updatedProducts[0]
             });
