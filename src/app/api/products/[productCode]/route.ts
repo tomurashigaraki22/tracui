@@ -4,6 +4,23 @@ import pool from '@/lib/mysql';
 import jwt from 'jsonwebtoken';
 import type { RowDataPacket } from 'mysql2';
 
+interface Log extends RowDataPacket {
+    id: number;
+    product_id: number;
+    longitude: number;
+    latitude: number;
+    temperature: number;
+    humidity: number;
+    pressure: number;
+    accel_x: number;
+    accel_y: number;
+    accel_z: number;
+    gyro_x: number;
+    gyro_y: number;
+    gyro_z: number;
+    created_at: Date;
+}
+
 interface Product extends RowDataPacket {
     id: number;
     product_code: string;
@@ -23,6 +40,7 @@ interface Product extends RowDataPacket {
     tracking_number: string;
     product_weight: number;
     product_value: number;
+    logs?: Array<Log & { shock: number; tilt: number; }>;
 }
 
 const verifyToken = (request: NextRequest) => {
@@ -53,7 +71,43 @@ export async function GET(request: NextRequest, { params }: { params: { productC
                 return NextResponse.json({ error: 'Product not found' }, { status: 404 });
             }
 
-            return NextResponse.json({ product: products[0] }, { status: 200 });
+            const product = products[0];
+
+            const [logs] = await connection.execute<Log[]>(
+                'SELECT * FROM logs WHERE product_id = ? ORDER BY created_at DESC',
+                [product.id]
+            );
+
+            const processedLogs = logs.map(log => {
+                const shock = Math.sqrt(
+                    Math.pow(Number(log.accel_x), 2) + 
+                    Math.pow(Number(log.accel_y), 2) + 
+                    Math.pow(Number(log.accel_z), 2)
+                );
+
+                const tilt = Math.atan2(
+                    Math.sqrt(Math.pow(Number(log.gyro_x), 2) + Math.pow(Number(log.gyro_y), 2)),
+                    Math.abs(Number(log.gyro_z))
+                ) * (180 / Math.PI);
+
+                return {
+                    ...log,
+                    shock,
+                    tilt,
+                    humidity: Number(Number(log.humidity).toFixed(2)),
+                    pressure: Number(Number(log.pressure).toFixed(2)),
+                    accel_x: Number(Number(log.accel_x).toFixed(3)),
+                    accel_y: Number(Number(log.accel_y).toFixed(3)),
+                    accel_z: Number(Number(log.accel_z).toFixed(3)),
+                    gyro_x: Number(Number(log.gyro_x).toFixed(3)),
+                    gyro_y: Number(Number(log.gyro_y).toFixed(3)),
+                    gyro_z: Number(Number(log.gyro_z).toFixed(3))
+                };
+            });
+
+            product.logs = processedLogs;
+
+            return NextResponse.json({ product }, { status: 200 });
         } finally {
             connection.release();
         }
