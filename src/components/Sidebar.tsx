@@ -17,6 +17,7 @@ import { FaBars, FaUserSecret, FaX } from "react-icons/fa6";
 import Link from "next/link";
 import { IconType } from "react-icons";
 import Image from "next/image";
+import WalletConnect from "./ConnectWallet";
 
 interface SidebarProps {
   role: string | null;
@@ -141,7 +142,7 @@ const Sidebar = ({ role }: SidebarProps) => {
   };
 
   const logout = () => {
-    console.log("WDWD")
+    console.log("WDWD");
     localStorage.clear();
     router.replace("/");
   };
@@ -268,7 +269,10 @@ const Sidebar = ({ role }: SidebarProps) => {
           </nav>
 
           {/* Logout Button - Fixed at bottom for desktop */}
-          <div className="p-4 mt-auto border-t border-neutral-200">
+          <div className="p-4 flex flex-col mt-auto border-t gap-3 border-neutral-200">
+            <div className="flex justify-start">
+              <WalletConnect />
+            </div>
             <button
               onClick={logout}
               className="flex w-full bg-white cursor-pointer hover:text-black hover:font-semibold items-center px-3 py-2 text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"
