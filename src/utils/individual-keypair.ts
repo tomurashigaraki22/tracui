@@ -28,13 +28,16 @@ const WALRUS_PACKAGE_CONFIG = {
     ]
 } satisfies WalrusPackageConfig;
 
-export async function getFundedKeypair() {
+export async function getIndividualKeypair(keypairSecret: string) {
+    if (!keypairSecret) {
+        throw new Error('Keypair secret is required');
+    }
     const suiClient = new SuiClient({
         url: getFullnodeUrl('testnet'),
     });
 
     const keypair = Ed25519Keypair.fromSecretKey(
-        'suiprivkey1qzmcxscyglnl9hnq82crqsuns0q33frkseks5jw0fye3tuh83l7e6ajfhxx',
+        keypairSecret,
     );
     
     // Get address from public key properly
@@ -46,12 +49,12 @@ export async function getFundedKeypair() {
         owner: address,
     });
 
-    // if (BigInt(balance.totalBalance) < MIST_PER_SUI) {
-    //     await requestSuiFromFaucetV2({
-    //         host: getFaucetHost('testnet'),
-    //         recipient: address,
-    //     });
-    // }
+    if (BigInt(balance.totalBalance) < MIST_PER_SUI) {
+        await requestSuiFromFaucetV2({
+            host: getFaucetHost('testnet'),
+            recipient: address,
+        });
+    }
 
     const walBalance = await suiClient.getBalance({
         owner: address,

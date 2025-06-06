@@ -1,6 +1,7 @@
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { WalrusClient } from '@mysten/walrus';
 import { getFundedKeypair } from '@/utils/funded-keypair';
+import { getIndividualKeypair } from '@/utils/individual-keypair';
 
 const NETWORK = 'testnet';
 const MAX_RETRIES = 3;
@@ -24,14 +25,14 @@ const walrusClient = new WalrusClient({
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function saveProductBlob(data: unknown): Promise<string> {
+export async function saveProductBlob(data: unknown, secretkey: string): Promise<string> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
             const jsonString = JSON.stringify(data);
             const blob = new TextEncoder().encode(jsonString);
-            const keypair = await getFundedKeypair();
+            const keypair = await getIndividualKeypair(secretkey);
 
             console.log(`Attempt ${attempt + 1}/${MAX_RETRIES} to save blob...`);
 

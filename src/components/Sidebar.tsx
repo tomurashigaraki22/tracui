@@ -211,7 +211,7 @@ const Sidebar = ({ role }: SidebarProps) => {
                       <div>
                         <button
                           onClick={() => toggleGroup(item.label)}
-                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                          className={`w-30 flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
                             isActive(item.path) || isParentActive
                               ? "bg-white text-black"
                               : "text-white hover:bg-gray-400 hover:text-black"
@@ -270,12 +270,9 @@ const Sidebar = ({ role }: SidebarProps) => {
 
           {/* Logout Button - Fixed at bottom for desktop */}
           <div className="p-4 flex flex-col mt-auto border-t gap-3 border-neutral-200">
-            <div className="flex justify-start">
-              <WalletConnect />
-            </div>
             <button
               onClick={logout}
-              className="flex w-full bg-white cursor-pointer hover:text-black hover:font-semibold items-center px-3 py-2 text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"
+              className="flex w-30 bg-white cursor-pointer hover:text-black hover:font-semibold items-center px-3 py-2 text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"
             >
               <BiLogOut size={20} className="mr-3" />
               <span>Logout</span>

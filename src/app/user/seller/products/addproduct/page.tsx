@@ -3,25 +3,36 @@ import { useState } from "react";
 import { API_ROUTES } from "@/utils/config";
 import { useRouter } from "next/navigation";
 import { saveProductBlob } from "../utils/walrustools";
+import { Signer } from "@mysten/sui/cryptography";
+import { convertUSDToSUI } from "@/utils/price";
+import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
+import { getFaucetHost, requestSuiFromFaucetV2 } from '@mysten/sui/faucet';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import { coinWithBalance, Transaction } from '@mysten/sui/transactions';
+import { MIST_PER_SUI, parseStructTag } from '@mysten/sui/utils';
+import { log } from "console";
 
 interface ProductFormData {
   product_name: string;
   sender_location: string;
   receiver_location: string;
-  sender_wallet_address: string;
-  logistics_wallet_address: string;
+  sender_email: string;         // Changed from sender_wallet_address
+  logistics_email: string;      // Changed from logistics_wallet_address
   logistics_location: string;
   description: string;
   estimated_delivery_date: string;
   product_weight: number;
   product_value: number;
   delivery_fee: number;
+  escrow_amount: number;        // Added for escrow handling
+  recipient_email: string;
 }
 
 interface UserData {
   email: string;
   // add other user data properties if needed
 }
+
 
 const AddProductPage = () => {
   const router = useRouter();
@@ -31,81 +42,237 @@ const AddProductPage = () => {
     product_name: "",
     sender_location: "",
     receiver_location: "",
-    sender_wallet_address: "",
-    logistics_wallet_address: "",
+    sender_email: "",           // Changed
+    logistics_email: "",        // Changed
     logistics_location: "",
     description: "",
     estimated_delivery_date: "",
     product_weight: 0,
     product_value: 0,
-    delivery_fee: 300,
+    delivery_fee: 0,  // Changed from 300 to 0, will be calculated
+    escrow_amount: 0,          // Will be calculated based on product_value + delivery_fee
+    recipient_email: ""
   });
+
+  const calculateEscrowAmount = async (productValue: number, deliveryFee: number) => {
+    try {
+      // Convert product value and delivery fee to SUI
+      const productValueInSUI = await convertUSDToSUI(productValue);
+      const deliveryFeeInSUI = await convertUSDToSUI(deliveryFee);
+      
+      // Calculate platform fee (5%) in SUI
+      const platformFee = (productValueInSUI + deliveryFeeInSUI) * 0.05;
+      
+      // Total amount in SUI, rounded up to nearest whole number
+      const totalInSUI = Math.ceil(productValueInSUI + deliveryFeeInSUI + platformFee);
+      
+      console.log('Escrow calculation:', {
+        productValueUSD: productValue,
+        productValueSUI: productValueInSUI,
+        deliveryFeeUSD: deliveryFee,
+        deliveryFeeSUI: deliveryFeeInSUI,
+        platformFeeSUI: platformFee,
+        totalSUIRaw: productValueInSUI + deliveryFeeInSUI + platformFee,
+        totalSUIRounded: totalInSUI
+      });
+  
+      return totalInSUI;
+    } catch (error) {
+      console.error('Error calculating escrow amount:', error);
+      throw new Error('Failed to calculate escrow amount');
+    }
+  };
+
+  // Add function to calculate delivery fee
+  const calculateDeliveryFee = (productValue: number): number => {
+    return productValue * 0.2; // 20% of product value
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
+  
     try {
+      // Calculate escrow amount first
+      const escrowAmount = await calculateEscrowAmount(
+        formData.product_value,
+        formData.delivery_fee
+      );
+  
+      // Check recipient's wallet balance first
+      const recipientWalletResponse = await fetch('/api/wallet/check-balance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.recipient_email
+        })
+      });
+  
+      const walletData = await recipientWalletResponse.json();
+  
+      if (!recipientWalletResponse.ok) {
+        throw new Error(walletData.error || 'Failed to check recipient wallet');
+      }
+  
+      // Convert balance to number for comparison
+      const balance = parseFloat(walletData.balance);
+      
+      if (balance < escrowAmount) {
+        // Try to fund the wallet first
+        try {
+          console.log('Insufficient balance, requesting from faucet...');
+          
+          const faucetResponse = await fetch('/api/wallet/request-funds', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: formData.recipient_email
+            })
+          });
+  
+          if (!faucetResponse.ok) {
+            throw new Error('Failed to request funds from faucet');
+          }
+  
+          // Wait for faucet transaction to complete
+          await new Promise(resolve => setTimeout(resolve, 2000));
+  
+          // Check balance again
+          const newBalanceResponse = await fetch('/api/wallet/check-balance', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: formData.recipient_email
+            })
+          });
+  
+          const newBalanceData = await newBalanceResponse.json();
+          const newBalance = parseFloat(newBalanceData.balance);
+  
+          if (newBalance < escrowAmount) {
+            const usdAmount = formData.product_value + formData.delivery_fee;
+            setError(
+              `Even after faucet funding, insufficient balance. Please ask ${formData.recipient_email} ` +
+              `to fund their wallet with at least ${escrowAmount} SUI (~${usdAmount} USD)`
+            );
+            return;
+          }
+        } catch (faucetError) {
+          console.error('Faucet request failed:', faucetError);
+          const usdAmount = formData.product_value + formData.delivery_fee;
+          setError(
+            `Insufficient funds in recipient's wallet and faucet request failed. Please ask ${formData.recipient_email} ` +
+            `to fund their wallet with at least ${escrowAmount} SUI (~${usdAmount} USD)`
+          );
+          return;
+        }
+      }
+  
+      // If we have sufficient balance, proceed with product creation
       const token = localStorage.getItem("access_token");
       if (!token) {
         throw new Error("Authentication token not found");
       }
-
-      const userDataString = localStorage.getItem("userData");
-      if (!userDataString) {
-        throw new Error("User data not found");
-      }
-
-      const userData = JSON.parse(userDataString) as UserData;
-      if (!userData.email) {
-        throw new Error("User email not found");
-      }
-
-      const blobId = await saveProductBlob(formData);
-      if (!blobId) {
-        throw new Error("Failed to save product blob");
-      }
-
-      const response = await fetch(API_ROUTES.SELLER.PRODUCTS, {
-        method: "POST",
+  
+      // Create escrow and transfer funds
+      const escrowResponse = await fetch('/api/products/escrow', {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...formData,
-          blob_id: blobId,
-        }),
+          recipient_email: formData.recipient_email,
+          amount: escrowAmount,
+          product_id: formData.recipient_email,
+          sender_email: formData.sender_email,
+          logistics_email: formData.logistics_email
+        })
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to create product");
+  
+      if (!escrowResponse.ok) {
+        const escrowData = await escrowResponse.json();
+        throw new Error(escrowData.error || 'Failed to create escrow');
       }
 
-      const data = await response.json();
-      console.log("Product created:", data);
+      const escrowData = await escrowResponse.json();
 
-      router.push("/user/seller/products/activeproducts");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create product");
-      console.error(err);
-    } finally {
-      setLoading(false);
+    // Get funded escrow keypair with WAL tokens
+    console.log('Funded escrow keypair created for blob storage');
+
+    // Use keypair with saveProductBlob
+    const blobId = await saveProductBlob(
+      {
+        ...formData,
+        escrow_amount: escrowAmount,
+        created_at: new Date().toISOString()
+      },
+      escrowData.wallet.privateKey  // Pass the funded keypair directly
+    );
+
+    if (!blobId) {
+      throw new Error("Failed to save product blob");
     }
-  };
+
+    console.log('Product blob saved with ID:', blobId);
+
+    // Create the product with blob reference
+    const response = await fetch(API_ROUTES.SELLER.PRODUCTS, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...formData,
+        blob_id: blobId,
+        escrow_amount: escrowAmount,
+        escrow_wallet: escrowData.wallet.address
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to create product");
+    }
+
+    const data = await response.json();
+    console.log("Product created successfully:", data);
+
+    router.push("/user/seller/products/activeproducts");
+  } catch (err) {
+    console.error('Product creation failed:', err);
+    setError(err instanceof Error ? err.message : "Failed to create product");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name.includes("weight") || name.includes("value")
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: name.includes("weight") || name.includes("value")
           ? parseFloat(value)
           : value,
-    }));
+      };
+
+      // Automatically update delivery fee when product value changes
+      if (name === 'product_value') {
+        newData.delivery_fee = calculateDeliveryFee(parseFloat(value));
+      }
+
+      return newData;
+    });
   };
 
   return (
@@ -174,31 +341,46 @@ const AddProductPage = () => {
                 />
               </div>
 
-              {/* Sender Wallet Address */}
+              {/* Sender Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sender Wallet Address <span className="text-red-500">*</span>
+                  Sender Email <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
-                  name="sender_wallet_address"
-                  value={formData.sender_wallet_address}
+                  type="email"
+                  name="sender_email"
+                  value={formData.sender_email}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FFD1] focus:border-[#00FFD1] transition"
                   required
                 />
               </div>
 
-              {/* Logistics Wallet Address */}
+              {/* Recipient Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Logistics Wallet Address{" "}
-                  <span className="text-red-500">*</span>
+                  Recipient Email <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
-                  name="logistics_wallet_address"
-                  value={formData.logistics_wallet_address}
+                  type="email"
+                  name="recipient_email"
+                  value={formData.recipient_email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FFD1] focus:border-[#00FFD1] transition"
+                  required
+                  placeholder="Email of the person paying"
+                />
+              </div>
+
+              {/* Logistics Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Logistics Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="logistics_email"
+                  value={formData.logistics_email}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FFD1] focus:border-[#00FFD1] transition"
                   required
@@ -282,6 +464,20 @@ const AddProductPage = () => {
                   min="0"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00FFD1] focus:border-[#00FFD1] transition"
                   required
+                />
+              </div>
+
+              {/* Delivery Fee */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Delivery Fee ($) <span className="text-gray-500">(20% of product value)</span>
+                </label>
+                <input
+                  type="number"
+                  name="delivery_fee"
+                  value={formData.delivery_fee.toFixed(2)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
+                  readOnly
                 />
               </div>
             </div>

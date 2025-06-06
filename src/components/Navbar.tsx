@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
 import { FaBars, FaX } from "react-icons/fa6";
-import WalletConnect from "./ConnectWallet";
 
 const Navbar = () => {
   const [isNavOpen, setNavOpen] = useState<boolean>(false);
@@ -38,14 +37,11 @@ const Navbar = () => {
             ))}
           </div>
           <div className="flex flex-col lg:flex-row gap-3 px-[5%] w-full lg:w-fit lg:px-0 mt-20 lg:mt-0">
-            <div className="flex justify-start">
-              <WalletConnect />
-            </div>
 
             <Link
               onClick={() => setNavOpen(false)}
               href="/auth/login"
-              className="text-nowrap text-lg lg:text-base py-3 lg:py-1 px-5 bg-[#00FFD1] rounded font-semibold border"
+              className="text-nowrap text-lg lg:text-base py-3 lg:py-1 px-5 bg-[#00FFD1] rounded font-semibold border hover:text-white"
             >
               Login
             </Link>

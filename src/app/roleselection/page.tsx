@@ -25,15 +25,7 @@ export default function RoleSelection() {
       // Get user data from localStorage
       const userData = JSON.parse(localStorage.getItem("userData") || "{}");
 
-      // Create new wallet
-      const walletInfo = await createNewWallet(userData.email);
-      console.log("Created new wallet:", walletInfo.address);
-
-      // Optional: Check initial balance
-      const balance = await getWalletBalance(walletInfo.address);
-      console.log("Initial wallet balance:", balance);
-
-      // Make API request with wallet address
+      // Make API request for signup/login
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: {
@@ -42,8 +34,6 @@ export default function RoleSelection() {
         body: JSON.stringify({
           ...userData,
           account_type: role,
-          address: walletInfo.address,
-          private_key: walletInfo.privateKey,
         }),
       });
 
@@ -56,11 +46,9 @@ export default function RoleSelection() {
 
       // Store auth and wallet data
       localStorage.setItem("access_token", data.token);
-      //   localStorage.setItem("email", data.email);
-      //   localStorage.setItem("name", data.name);
-        localStorage.setItem("wallet_address", walletInfo.address);
-        localStorage.setItem("wallet_private_key", walletInfo.privateKey); // Be careful with this!
-        localStorage.setItem("wallet_public_key", walletInfo.publicKey);
+      localStorage.setItem("wallet_address", data.wallet.address);
+      localStorage.setItem("wallet_private_key", data.wallet.privateKey);
+      localStorage.setItem("wallet_public_key", data.wallet.publicKey);
       localStorage.setItem("userRole", role);
 
       // Navigate to dashboard
