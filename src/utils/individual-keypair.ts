@@ -1,6 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+import { requestSuiFromFaucetV1 } from '@mysten/sui.js/faucet';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { getFaucetHost, requestSuiFromFaucetV2 } from '@mysten/sui/faucet';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
@@ -36,6 +37,8 @@ export async function getIndividualKeypair(keypairSecret: string) {
         url: getFullnodeUrl('testnet'),
     });
 
+    console.log("Keypaor Secret: ", keypairSecret);
+
     const keypair = Ed25519Keypair.fromSecretKey(
         keypairSecret,
     );
@@ -49,22 +52,43 @@ export async function getIndividualKeypair(keypairSecret: string) {
         owner: address,
     });
 
-    if (BigInt(balance.totalBalance) < MIST_PER_SUI) {
-        await requestSuiFromFaucetV2({
-            host: getFaucetHost('testnet'),
-            recipient: address,
-        });
-    }
+    // if (BigInt(balance.totalBalance) < MIST_PER_SUI) {
+    //     await requestSuiFromFaucetV2({
+    //         host: getFaucetHost('testnet'),
+    //         recipient: address,
+    //     });
+    // }
 
     const walBalance = await suiClient.getBalance({
         owner: address,
         coinType: `0x8270feb7375eee355e64fdb69c50abb6b5f9393a722883c1cf45f8e26048810a::wal::WAL`,
     });
-    console.log('WAL balance:', walBalance.totalBalance);
+    console.log('Initial WAL balance:', walBalance.totalBalance);
 
     if (Number(walBalance.totalBalance) < Number(MIST_PER_SUI) / 2) {
+        console.log('Insufficient WAL, attempting to convert SUI...');
+        
+        // Check SUI balance first
+        const suiBalance = await suiClient.getBalance({
+            owner: address,
+            coinType: '0x2::sui::SUI'
+        });
+
+        // Request from faucet if needed
+        // if (BigInt(suiBalance.totalBalance) < MIST_PER_SUI) {
+        //     console.log('Requesting SUI from faucet...');
+        //     await requestSuiFromFaucetV2({
+        //         host: getFaucetHost('testnet'),
+        //         recipient: address,
+        //     });
+        //     // Wait for coins to be minted
+        //     await new Promise(resolve => setTimeout(resolve, 5000));
+        // }
+
+        // Create transaction to convert SUI to WAL
         const tx = new Transaction();
 
+        // Get latest exchange info
         const exchange = await suiClient.getObject({
             id: WALRUS_PACKAGE_CONFIG.exchangeIds[0],
             options: {
@@ -72,8 +96,19 @@ export async function getIndividualKeypair(keypairSecret: string) {
             },
         });
 
-        const exchangePackageId = parseStructTag(exchange.data?.type!).address;
+        if (!exchange.data?.type) {
+            throw new Error('Exchange type not found');
+        }
 
+        const exchangePackageId = parseStructTag(exchange.data.type).address;
+
+        console.log('Converting SUI to WAL...', {
+            exchangeId: WALRUS_PACKAGE_CONFIG.exchangeIds[0],
+            amount: (MIST_PER_SUI / 2n).toString(),
+            package: exchangePackageId
+        });
+
+        // Execute exchange
         const wal = tx.moveCall({
             package: exchangePackageId,
             module: 'wal_exchange',
@@ -93,6 +128,7 @@ export async function getIndividualKeypair(keypairSecret: string) {
             signer: keypair,
         });
 
+        // Wait for transaction completion
         const { effects } = await suiClient.waitForTransaction({
             digest,
             options: {
@@ -100,7 +136,18 @@ export async function getIndividualKeypair(keypairSecret: string) {
             },
         });
 
-        console.log(effects);
+        console.log('WAL conversion complete:', {
+            txDigest: digest,
+            status: effects?.status?.status,
+            created: effects?.created?.map(c => c.reference)
+        });
+
+        // Verify new WAL balance
+        const newWalBalance = await suiClient.getBalance({
+            owner: address,
+            coinType: `0x8270feb7375eee355e64fdb69c50abb6b5f9393a722883c1cf45f8e26048810a::wal::WAL`,
+        });
+        console.log('Updated WAL balance:', newWalBalance.totalBalance);
     }
 
     return keypair;

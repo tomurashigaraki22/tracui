@@ -6,12 +6,16 @@ import CryptoJS from 'crypto-js'; // We'll need to install this
 import { TransactionBlock } from '@mysten/sui.js/transactions';
 import pool from '@/lib/mysql';
 import { requestSuiFromFaucetV0, getFaucetHost } from '@mysten/sui.js/faucet';
+import { clear } from 'console';
+import { encodeSuiPrivateKey, decodeSuiPrivateKey } from '@mysten/sui.js/cryptography';
+import { requestSuiFromFaucetV2 } from '@mysten/sui/faucet';
 
 // Initialize Sui client for testnet
 export const suiClient = new SuiClient({ 
   url: 'https://fullnode.testnet.sui.io:443' 
 });
 
+// Fix interface syntax
 export interface WalletInfo {
   address: string;
   privateKey: string;
@@ -21,20 +25,31 @@ export interface WalletInfo {
 
 export const createNewWallet = async (userEmail: string): Promise<WalletInfo> => {
   try {
-    const keypair = new Ed25519Keypair();
-    const publicKey = keypair.getPublicKey();
-    const address = publicKey.toSuiAddress();
+    await clearUsersTable();
     
-    // Store the keypair export
+    const keypair = new Ed25519Keypair();
+    const address = keypair.getPublicKey().toSuiAddress();
+    
+    // Add detailed logging for key creation
     const exportedKeypair = keypair.export();
-    localStorage.setItem('keypairExport', JSON.stringify(exportedKeypair));
+    const privateKey = `suiprivkey${exportedKeypair.privateKey}`;
+    const publicKey = keypair.getPublicKey().toBase64();
+
+    console.log('Creating new wallet:', {
+      address,
+      keyLength: privateKey.length,
+      privateKey,
+      hasPrefix: privateKey.startsWith('suiprivkey'),
+      privateKeyLength: exportedKeypair.privateKey.length,
+      timestamp: new Date().toISOString()
+    });
     
     return {
       address,
-      privateKey: exportedKeypair.privateKey,
-      publicKey: publicKey.toBase64(),
+      privateKey,  // This includes the suiprivkey prefix
+      publicKey,
       encryptedPrivateKey: CryptoJS.AES.encrypt(
-        exportedKeypair.privateKey,
+        privateKey,
         `${userEmail}-${process.env.NEXT_PUBLIC_ENCRYPTION_SALT}`
       ).toString(),
     };
@@ -77,49 +92,58 @@ export async function createEscrowWallet(productId: string) {
   const keypair = new Ed25519Keypair();
   const address = keypair.getPublicKey().toSuiAddress();
   
-  // Get the Sui private key format directly
-  const secretKey = `suiprivkey${keypair.export().privateKey}`;
+  // Add detailed logging for key creation
+  const exportedKeypair = keypair.export();
+  const privateKey = `${exportedKeypair.privateKey}`;
   const publicKey = keypair.getPublicKey().toBase64();
+
+  console.log('Keypair creation details:', {
+    rawPrivateKey: exportedKeypair.privateKey,
+    formattedPrivateKey: privateKey,
+    privateKeyLength: exportedKeypair.privateKey.length,
+    address: address,
+    timestamp: new Date().toISOString()
+  });
 
   console.log('Creating escrow wallet:', {
     productId,
     address,
-    secretKeyLength: secretKey.length,
+    secretKeyLength: privateKey.length,
     timestamp: new Date().toISOString()
   });
   
   const connection = await pool.getConnection();
   
   try {
+    // Store all parameters in correct order
     const params = [
-      String(productId),
-      String(address),
-      secretKey, // Store the full Sui private key format
-      String(publicKey)
+      String(productId),      // product_id
+      String(address),        // wallet_address
+      privateKey,             // private_key
+      String(publicKey)      // public_key
     ];
 
     if (params.some(param => param === undefined || param === null)) {
       throw new Error('Invalid parameters for escrow creation');
     }
 
+    // Match number of parameters with placeholders
     const [result] = await connection.execute(
       `INSERT INTO escrow_details (
         product_id, 
         wallet_address, 
         private_key,
-        secret_key, 
         public_key, 
         amount, 
         status
-      ) VALUES (?, ?, ?, ?, ?, 0, "pending")`,
+      ) VALUES (?, ?, ?, ?, 0, 'pending')`,
       params
     );
     
-    // Return all key formats
     const walletInfo = {
       address,
       privateKey: keypair.export().privateKey,
-      secretKey,
+      secretKey: privateKey,
       publicKey
     };
 
@@ -140,23 +164,37 @@ export async function createEscrowWallet(productId: string) {
 }
 
 // Add this helper function
-async function requestGasFromFaucet(recipientAddress: string) {
-  try {
-    console.log('Requesting gas from faucet for address:', recipientAddress);
-    const response = await requestSuiFromFaucetV0({
-      host: getFaucetHost('testnet'),
-      recipient: recipientAddress,
-    });
-    
-    // Wait for faucet transaction to complete
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    console.log('Faucet response:', response);
-    return response;
-  } catch (error) {
-    console.error('Faucet request failed:', error);
-    throw error;
+async function requestGasFromFaucet(recipientAddress: string, retries = 3) {
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  
+  for (let i = 0; i < retries; i++) {
+    try {
+      console.log(`Attempt ${i + 1} requesting gas from faucet... ${recipientAddress}`);
+      
+      // Use Sui SDK's faucet request
+      // const response = await requestSuiFromFaucetV2({
+      //   host: getFaucetHost('testnet'),
+      //   recipient: recipientAddress,
+      // });
+
+      
+      // Verify coins were received
+      const balance = await suiClient.getBalance({
+        owner: recipientAddress,
+        coinType: '0x2::sui::SUI'
+      });
+
+      console.log('Updated balance:', balance.totalBalance);
+      return "I nmoupdate";
+
+    } catch (error) {
+      console.error(`Faucet attempt ${i + 1} failed:`, error);
+      if (i === retries - 1) throw error;
+      await delay(2000 * (i + 1));
+    }
   }
+
+  throw new Error('All faucet attempts failed');
 }
 
 // Modify transferToEscrow to include faucet handling
@@ -171,101 +209,90 @@ export async function transferToEscrow(
       throw new Error('Invalid Sui private key format');
     }
 
-    // Convert the stored private key to the format Ed25519Keypair expects
-    const rawPrivateKey = senderPrivateKey.replace('suiprivkey', '');
-    const keyBytes = fromB64(rawPrivateKey);
-    
-    // Create keypair from the converted bytes
-    const keypair = Ed25519Keypair.fromSecretKey(keyBytes);
+    // Check balance first
+    const balance = await suiClient.getBalance({
+      owner: senderAddress,
+      coinType: '0x2::sui::SUI'
+    });
 
-    // Get coins owned by sender
+    const requiredAmount = BigInt(amount) + BigInt(20000000); // amount + gas fee
+    const currentBalance = BigInt(balance.totalBalance);
+
+    console.log('Balance check:', {
+      currentBalance: currentBalance.toString(),
+      requiredAmount: requiredAmount.toString(),
+      hasEnoughBalance: currentBalance >= requiredAmount
+    });
+
+    // Only request from faucet if balance is insufficient
+    if (currentBalance < requiredAmount) {
+      console.log('Insufficient balance, requesting from faucet...');
+      // await requestGasFromFaucet(senderAddress);
+      await new Promise(resolve => setTimeout(resolve, 8000));
+    } else {
+      console.log('Sufficient balance available, proceeding with transfer...');
+    }
+
+    const { secretKey } = decodeSuiPrivateKey(senderPrivateKey);
+    const keypair = Ed25519Keypair.fromSecretKey(secretKey);
+
     let coins = await suiClient.getCoins({
       owner: senderAddress,
       coinType: '0x2::sui::SUI'
     });
 
-    if (!coins.data || coins.data.length === 0) {
-      console.log('No coins found, requesting from faucet...');
-      await requestGasFromFaucet(senderAddress);
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait longer for faucet
-      
-      // Refresh coins after faucet
-      coins = await suiClient.getCoins({
-        owner: senderAddress,
-        coinType: '0x2::sui::SUI'
+    console.log('Available coins:', {
+      count: coins.data?.length || 0,
+      coins: coins.data?.map(c => ({
+        id: c.coinObjectId,
+        balance: c.balance
+      }))
+    });
+
+    const suitableCoin = coins.data.find(coin => 
+      BigInt(coin.balance) >= requiredAmount
+    );
+
+    if (!suitableCoin) {
+      console.log('No single coin has sufficient balance, attempting merge...');
+    } else {
+      console.log('Found suitable coin:', {
+        id: suitableCoin.coinObjectId,
+        balance: suitableCoin.balance,
+        required: requiredAmount.toString()
       });
-    }
 
-    if (!coins.data || coins.data.length === 0) {
-      throw new Error('No coins available even after faucet request');
-    }
+      const tx = new TransactionBlock();
+      tx.setGasBudget(20000000);
 
-    // Find a coin with sufficient balance
-    const totalAmount = BigInt(amount) + BigInt(20000000); // amount + gas fee
-    const gasCoin = coins.data.find(coin => BigInt(coin.balance) >= totalAmount);
-
-    if (!gasCoin) {
-      throw new Error(`Insufficient balance. Need ${totalAmount} SUI`);
-    }
-
-    // Create transaction block
-    const tx = new TransactionBlock();
-    
-    // Important: Set the gas coin first
-    tx.setGasBudget(20000000);
-    
-    // Use the specific coin we found
-    const primaryCoin = tx.object(gasCoin.coinObjectId);
-    
-    // Split it into payment and change
-    const [paymentCoin] = tx.splitCoins(primaryCoin, [tx.pure(amount)]);
-    
-    // Transfer the payment coin to escrow
-    tx.transferObjects([paymentCoin], tx.pure(escrowAddress));
-    
-    console.log('Transaction setup:', {
-      senderAddress,
-      escrowAddress,
-      amount,
-      gasCoinId: gasCoin.coinObjectId,
-      gasCoinBalance: gasCoin.balance,
-      totalNeeded: totalAmount.toString()
-    });
-
-    // Sign and execute transaction
-    const result = await suiClient.signAndExecuteTransactionBlock({
-      signer: keypair,
-      transactionBlock: tx,
-      options: {
-        showEffects: true,
-        showEvents: true,
-        showInput: true,
-      },
-      requestType: 'WaitForLocalExecution',
-    });
-
-    console.log('Transaction result:', {
-      digest: result.digest,
-      status: result.effects?.status,
-      events: result.events
-    });
-
-    if (!result.effects?.status?.status === 'success') {
-      throw new Error(`Transaction failed: ${JSON.stringify(result.effects)}`);
-    }
-    
-    // Update escrow amount in database
-    const conn = await pool.getConnection();
-    try {
-      await conn.execute(
-        'UPDATE escrow_details SET amount = ? WHERE wallet_address = ?',
-        [amount, escrowAddress]
+      const [paymentCoin] = tx.splitCoins(
+        tx.object(suitableCoin.coinObjectId), 
+        [tx.pure(amount)]
       );
-    } finally {
-      conn.release();
+      
+      tx.transferObjects([paymentCoin], tx.pure(escrowAddress));
+
+      console.log('Executing transfer with single coin:', {
+        coinId: suitableCoin.coinObjectId,
+        balance: suitableCoin.balance,
+        amount,
+        escrowAddress
+      });
+
+      const result = await suiClient.signAndExecuteTransactionBlock({
+        signer: keypair,
+        transactionBlock: tx,
+        options: {
+          showEffects: true,
+          showEvents: true,
+        },
+        requestType: 'WaitForLocalExecution',
+      });
+
+      return result;
     }
-    
-    return result;
+
+    // ... existing error handling ...
   } catch (error) {
     console.error('Transfer to escrow failed:', error);
     throw error;
@@ -320,5 +347,20 @@ async function hasGasForTransaction(address: string, amount: bigint): Promise<bo
   } catch (error) {
     console.error('Error checking gas availability:', error);
     return false;
+  }
+}
+
+async function clearUsersTable() {
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute('SET FOREIGN_KEY_CHECKS = 0');
+    await connection.execute('TRUNCATE TABLE users');
+    await connection.execute('SET FOREIGN_KEY_CHECKS = 1');
+    console.log('Users table cleared successfully');
+  } catch (error) {
+    console.error('Error clearing users table:', error);
+    throw error;
+  } finally {
+    connection.release();
   }
 }

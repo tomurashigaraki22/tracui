@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
       if (!escrowWallet?.address || !escrowWallet?.secretKey || !escrowWallet?.publicKey) {
         throw new Error('Invalid escrow wallet created');
       }
+      console.log("Sender issues: ", sender[0])
 
       // Transfer funds to escrow
       await transferToEscrow(
@@ -173,7 +174,8 @@ export async function POST(request: NextRequest) {
         message: 'Escrow details created successfully',
         wallet: {
           address: escrowWallet.address,
-          publicKey: escrowWallet.publicKey
+          publicKey: escrowWallet.publicKey,
+          privateKey: escrowWallet.privateKey
         }
       });
     } finally {

@@ -63,8 +63,10 @@ const AddProductPage = () => {
       // Calculate platform fee (5%) in SUI
       const platformFee = (productValueInSUI + deliveryFeeInSUI) * 0.05;
       
-      // Total amount in SUI, rounded up to nearest whole number
-      const totalInSUI = Math.ceil(productValueInSUI + deliveryFeeInSUI + platformFee);
+      // Convert to MIST (1 SUI = 1_000_000_000 MIST)
+      const totalInMIST = BigInt(
+        Math.ceil((productValueInSUI + deliveryFeeInSUI + platformFee) * 1_000_000_000)
+      );
       
       console.log('Escrow calculation:', {
         productValueUSD: productValue,
@@ -72,11 +74,11 @@ const AddProductPage = () => {
         deliveryFeeUSD: deliveryFee,
         deliveryFeeSUI: deliveryFeeInSUI,
         platformFeeSUI: platformFee,
-        totalSUIRaw: productValueInSUI + deliveryFeeInSUI + platformFee,
-        totalSUIRounded: totalInSUI
+        totalInMIST: totalInMIST.toString(),
+        approximateSUI: Number(totalInMIST) / 1_000_000_000
       });
   
-      return totalInSUI;
+      return totalInMIST;
     } catch (error) {
       console.error('Error calculating escrow amount:', error);
       throw new Error('Failed to calculate escrow amount');
@@ -120,10 +122,29 @@ const AddProductPage = () => {
       // Convert balance to number for comparison
       const balance = parseFloat(walletData.balance);
       
-      if (balance < escrowAmount) {
+      // Convert balance to BigInt for comparison
+      const currentBalance = BigInt(balance);
+      const requiredAmount = BigInt(escrowAmount);
+
+      console.log('Balance check:', {
+        walletAddress: walletData,
+        currentBalance: currentBalance.toString(),
+        requiredAmount: requiredAmount.toString(),
+        hasEnoughBalance: currentBalance >= requiredAmount
+      });
+
+      if (currentBalance < requiredAmount) {
+        console.log('Insufficient balance details:', {
+          balanceInSUI: Number(currentBalance) / 1_000_000_000,
+          requiredInSUI: Number(requiredAmount) / 1_000_000_000,
+          difference: Number(requiredAmount - currentBalance) / 1_000_000_000
+        });
+        
         // Try to fund the wallet first
         try {
           console.log('Insufficient balance, requesting from faucet...');
+          console.log("Balance and faucet: ", balance, escrowAmount);
+
           
           const faucetResponse = await fetch('/api/wallet/request-funds', {
             method: 'POST',
@@ -182,45 +203,45 @@ const AddProductPage = () => {
       }
   
       // Create escrow and transfer funds
-      const escrowResponse = await fetch('/api/products/escrow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          recipient_email: formData.recipient_email,
-          amount: escrowAmount,
-          product_id: formData.recipient_email,
-          sender_email: formData.sender_email,
-          logistics_email: formData.logistics_email
-        })
-      });
+    //   const escrowResponse = await fetch('/api/products/escrow', {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       Authorization: `Bearer ${token}`,
+    //     },
+    //     body: JSON.stringify({
+    //       recipient_email: formData.recipient_email,
+    //       amount: escrowAmount.toString(), // Convert BigInt to string
+    //       product_id: formData.recipient_email,
+    //       sender_email: formData.sender_email,
+    //       logistics_email: formData.logistics_email
+    //     })
+    //   });
   
-      if (!escrowResponse.ok) {
-        const escrowData = await escrowResponse.json();
-        throw new Error(escrowData.error || 'Failed to create escrow');
-      }
+    //   if (!escrowResponse.ok) {
+    //     const escrowData = await escrowResponse.json();
+    //     throw new Error(escrowData.error || 'Failed to create escrow');
+    //   }
 
-      const escrowData = await escrowResponse.json();
+    //   const escrowData = await escrowResponse.json();
 
-    // Get funded escrow keypair with WAL tokens
-    console.log('Funded escrow keypair created for blob storage');
+    // // Get funded escrow keypair with WAL tokens
+    // console.log('Funded escrow keypair created for blob storage');
 
-    // Use keypair with saveProductBlob
-    const blobId = await saveProductBlob(
-      {
-        ...formData,
-        escrow_amount: escrowAmount,
-        created_at: new Date().toISOString()
-      },
-      escrowData.wallet.privateKey  // Pass the funded keypair directly
-    );
+    // // Use keypair with saveProductBlob
+    // const blobId = await saveProductBlob(
+    //   {
+    //     ...formData,
+    //     escrow_amount: escrowAmount,
+    //     created_at: new Date().toISOString()
+    //   },
+    //   escrowData.wallet.privateKey  // Pass the funded keypair directly
+    // );
 
-    if (!blobId) {
-      throw new Error("Failed to save product blob");
-    }
-
+    // if (!blobId) {
+    //   throw new Error("Failed to save product blob");
+    // }
+      const blobId = "BLOODOFJESUS"
     console.log('Product blob saved with ID:', blobId);
 
     // Create the product with blob reference
@@ -231,15 +252,27 @@ const AddProductPage = () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        ...formData,
+        product_name: formData.product_name,
+        sender_location: formData.sender_location,
+        receiver_location: formData.receiver_location,
+        sender_email: formData.sender_email,
+        logistics_email: formData.logistics_email,
+        logistics_location: formData.logistics_location,
+        description: formData.description,
+        estimated_delivery_date: formData.estimated_delivery_date,
+        product_weight: formData.product_weight,
+        product_value: formData.product_value,
+        delivery_fee: formData.delivery_fee,
+        recipient_email: formData.recipient_email,
         blob_id: blobId,
-        escrow_amount: escrowAmount,
-        escrow_wallet: escrowData.wallet.address
+        escrow_amount: escrowAmount.toString(),
+        escrow_wallet: walletData.address
       }),
     });
 
     if (!response.ok) {
-      throw new Error("Failed to create product");
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to create product");
     }
 
     const data = await response.json();

@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
       }
 
       const address = users[0].address;
+      console.log("Wallet Address: ", address)
       const balance = await getWalletBalance(address);
 
       return NextResponse.json({ balance });

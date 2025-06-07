@@ -18,6 +18,7 @@ import Link from "next/link";
 import { IconType } from "react-icons";
 import Image from "next/image";
 import WalletConnect from "./ConnectWallet";
+import WalletBalance from './WalletBalance';
 
 interface SidebarProps {
   role: string | null;
@@ -270,6 +271,7 @@ const Sidebar = ({ role }: SidebarProps) => {
 
           {/* Logout Button - Fixed at bottom for desktop */}
           <div className="p-4 flex flex-col mt-auto border-t gap-3 border-neutral-200">
+            <WalletBalance />
             <button
               onClick={logout}
               className="flex w-30 bg-white cursor-pointer hover:text-black hover:font-semibold items-center px-3 py-2 text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"

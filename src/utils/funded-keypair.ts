@@ -40,7 +40,7 @@ export async function getFundedKeypair() {
     // Get address from public key properly
     const publicKey = keypair.getPublicKey();
     const address = publicKey.toSuiAddress();
-    console.log('Wallet address:', address);
+    console.log('Wallet address funded:', address);
 
     const balance = await suiClient.getBalance({
         owner: address,

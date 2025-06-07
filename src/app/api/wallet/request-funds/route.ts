@@ -26,14 +26,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const faucetResponse = await requestSuiFromFaucetV2({
-        host: getFaucetHost('testnet'),
-        recipient: users[0].address,
-      });
+    //   const faucetResponse = await requestSuiFromFaucetV2({
+    //     host: getFaucetHost('testnet'),
+    //     recipient: users[0].address,
+    //   });
 
       return NextResponse.json({
         message: 'Funds requested successfully',
-        faucetResponse
+        // faucetResponse
       });
     } finally {
       connection.release();

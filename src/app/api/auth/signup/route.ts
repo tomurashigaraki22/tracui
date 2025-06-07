@@ -74,9 +74,12 @@ export async function POST(request: NextRequest) {
         [email]
       );
 
+      console.log('Existing user:', existingUser[0]);
+
       if (Array.isArray(existingUser) && existingUser.length > 0) {
         const userId = existingUser[0].id;
         const token = jwt.sign({ id: userId }, process.env.JWT_SECRET || 'your-secret-key');
+        console.log("Token:", token);
         
         return NextResponse.json({ 
           message: 'User logged in Successfully!',

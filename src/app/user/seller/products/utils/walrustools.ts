@@ -28,19 +28,26 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export async function saveProductBlob(data: unknown, secretkey: string): Promise<string> {
     let lastError: Error | null = null;
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    for (let i = 0; i < MAX_RETRIES; i++) {
         try {
-            const jsonString = JSON.stringify(data);
+            // Convert BigInt values to strings before stringifying
+            const sanitizedData = JSON.parse(JSON.stringify(data, (_, value) =>
+                typeof value === 'bigint' ? value.toString() : value
+            ));
+            
+            const jsonString = JSON.stringify(sanitizedData);
             const blob = new TextEncoder().encode(jsonString);
             const keypair = await getIndividualKeypair(secretkey);
 
-            console.log(`Attempt ${attempt + 1}/${MAX_RETRIES} to save blob...`);
+            console.log(`Attempt ${i + 1}/${MAX_RETRIES} to save blob...`, {
+                dataSize: jsonString.length,
+                hasKeypair: !!keypair
+            });
 
-            // Write blob directly - it handles registration internally
             const { blobId } = await walrusClient.writeBlob({
                 blob,
                 deletable: false,
-                epochs: 5, // Increased for better persistence
+                epochs: 5,
                 signer: keypair,
             });
 
@@ -48,10 +55,10 @@ export async function saveProductBlob(data: unknown, secretkey: string): Promise
             return blobId;
         } catch (error) {
             lastError = error as Error;
-            console.error(`Attempt ${attempt + 1} failed and i dont knnow why:`, error);
+            console.error(`Attempt ${i + 1} failed:`, error);
 
-            if (attempt < MAX_RETRIES - 1) {
-                const delay = RETRY_DELAY * Math.pow(2, attempt);
+            if (i < MAX_RETRIES - 1) {
+                const delay = RETRY_DELAY * Math.pow(2, i);
                 console.log(`Retrying in ${delay}ms...`);
                 await wait(delay);
             }
