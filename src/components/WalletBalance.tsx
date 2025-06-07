@@ -25,29 +25,55 @@ const DepositModal = ({ isOpen, onClose, address }: BalanceModalProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.95 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.95 }}
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white p-6 rounded-xl shadow-xl max-w-sm w-full mx-4"
+            className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full mx-4"
           >
-            <h3 className="text-xl font-bold mb-4">Deposit SUI</h3>
-            <div className="flex justify-center mb-4">
-              <QRCode value={address} size={200} />
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Deposit SUI</h3>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-500 p-1"
+              >
+                ×
+              </button>
             </div>
-            <div className="mt-4">
-              <p className="text-sm text-gray-600 mb-2">Your Wallet Address:</p>
-              <div className="bg-gray-100 p-3 rounded-lg break-all text-sm">
+
+            {/* QR Code */}
+            <div className="bg-gray-50 p-6 rounded-xl mb-6">
+              <div className="flex justify-center">
+                <QRCode 
+                  value={address} 
+                  size={200}
+                  className="h-auto max-w-full"
+                />
+              </div>
+            </div>
+
+            {/* Wallet Address */}
+            <div className="mb-6">
+              <p className="text-sm font-medium text-gray-600 mb-2">
+                Wallet Address
+              </p>
+              <div className="bg-gray-50 p-4 rounded-xl break-all text-sm 
+                          font-mono text-gray-600 select-all cursor-pointer">
                 {address}
               </div>
             </div>
+
+            {/* Close Button */}
             <button
               onClick={onClose}
-              className="mt-6 w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition-colors"
+              className="w-full bg-black text-white py-3 rounded-xl 
+                       font-medium hover:bg-gray-800 transition-colors
+                       active:transform active:scale-[0.98]"
             >
               Close
             </button>
@@ -118,30 +144,56 @@ const WalletBalance = () => {
   };
 
   return (
-    <div className="flex flex-col gap-2 p-4">
-      <div className="bg-white rounded-xl shadow-sm p-4">
-        <div className="flex justify-between items-center mb-3">
-          <div>
-            <p className="text-sm text-gray-600">Balance</p>
-            <p className="text-xl font-bold">{balance} SUI</p>
+    <div className="flex flex-col gap-3 p-2 w-full">
+      <div className="bg-white rounded-xl shadow-sm p-5 w-full hover:shadow-md transition-shadow">
+        {/* Balance Header */}
+        <div className="flex flex-col mb-4">
+          <span className="text-sm font-medium text-gray-500 mb-1">Balance</span>
+          <div className="flex items-center justify-between">
+            <h3 className="text-3xl font-bold text-gray-900">{balance} SUI</h3>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-black text-white px-5 py-2.5 text-sm font-medium rounded-lg 
+                     hover:bg-gray-800 transition-all transform hover:scale-105 
+                     active:scale-95 lg:hidden"
+            >
+              Deposit
+            </button>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            Deposit
-          </button>
         </div>
-        <div className="space-y-1">
-          <p className="text-sm text-gray-500">
-            {formatCurrency(suiAmount * prices.usd, 'USD')}
-          </p>
-          <p className="text-sm text-gray-500">
-            {formatCurrency(suiAmount * prices.ngn, 'NGN')}
-          </p>
+
+        {/* Currency Values */}
+        <div className="space-y-2.5 pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between py-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">USD Value</span>
+            </div>
+            <span className="text-sm font-semibold text-gray-700">
+              {formatCurrency(suiAmount * prices.usd, 'USD')}
+            </span>
+          </div>
+          
+          <div className="flex items-center justify-between py-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">NGN Value</span>
+            </div>
+            <span className="text-sm font-semibold text-gray-700">
+              {formatCurrency(suiAmount * prices.ngn, 'NGN')}
+            </span>
+          </div>
         </div>
       </div>
 
+      <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-black text-white px-5 py-2.5 text-sm font-medium rounded-lg 
+                     hover:bg-white hover:text-black transition-all transform hover:scale-105 
+                     active:scale-95 hidden lg:block mt-4 border-gray-400 border-2 hover:border-black"
+            >
+              Deposit
+            </button>
+
+      {/* Deposit Modal */}
       <DepositModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
